@@ -1,0 +1,111 @@
+{
+  "theme": "LIGHT",
+  "archetype": "1 (Organic & Earthy)",
+  "vibe": "Tropical Mauritius influences. Sand, ocean, lush jungle, warm sunset accents. Premium but gamified, playful but grounded.",
+  "typography": {
+    "headings": "Cabinet Grotesk",
+    "body": "Manrope",
+    "scale": {
+      "h1": "text-4xl sm:text-5xl lg:text-6xl tracking-tight leading-none",
+      "h2": "text-2xl sm:text-3xl lg:text-4xl tracking-tight leading-none",
+      "h3": "text-xl sm:text-2xl tracking-tight",
+      "h4": "text-lg sm:text-xl",
+      "body": "text-base leading-relaxed",
+      "labels": "text-xs tracking-[0.2em] uppercase font-bold"
+    }
+  },
+  "colors": {
+    "base": {
+      "background": "#F9F6F0",
+      "surface": "#FFFFFF",
+      "surface_alt": "#F2EBE1",
+      "text": "#1A2E2A",
+      "text_muted": "#4A5D58",
+      "border": "#E5DFD3"
+    },
+    "primary": {
+      "main": "#265448",
+      "hover": "#1C4037",
+      "light": "#3A7868",
+      "foreground": "#FFFFFF"
+    },
+    "secondary": {
+      "main": "#D46F4D",
+      "hover": "#C05E3E",
+      "foreground": "#FFFFFF"
+    },
+    "accent": {
+      "main": "#E8B241",
+      "ocean": "#006C7A",
+      "ocean_light": "#BFE4E8"
+    }
+  },
+  "spacing_and_layout": {
+    "philosophy": "Generous Spacing Philosophy. Use 2-3x more spacing. Containers with borders must have internal padding.",
+    "scale": "p-1, p-2, p-4, p-6, p-8, p-12, p-16, p-24",
+    "grids": {
+      "marketing": "grid-cols-1 md:grid-cols-8 lg:grid-cols-12 gap-8 to gap-12. Asymmetry and BENTO.",
+      "dashboard": "grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 or gap-6."
+    },
+    "radius": "rounded-2xl to rounded-3xl for cards. rounded-full for badges and buttons."
+  },
+  "components": {
+    "cards": "Neumorphism mix: Clay & Crisp. Soft ambient shadows (shadow-[0_8px_32px_rgba(38,84,72,0.06)]) + sharp 1px border (border-black/5).",
+    "buttons": "Pill-shaped (rounded-full). Solid primary or secondary. High contrast hover states. Include data-testid.",
+    "header": "Crystal Glassmorphism: bg-white/70 backdrop-blur-xl border-b border-white/40 shadow-sm.",
+    "map": "Interactive SVG or map wrapper. Use custom markers (Terracotta/Jungle green). Rounded edges.",
+    "badges": "Playful but premium. Use accent sun yellow and rich terracotta. Rounded UI."
+  },
+  "interactions": {
+    "hover": "Slight lift (-translate-y-1), subtle shadow (shadow-lg), border color darkens.",
+    "active": "Scale down slightly (scale-95), darker background."
+  },
+  "icons": {
+    "library": "lucide-react",
+    "style": "Clean, rounded, matching the organic theme."
+  },
+  "media": {
+    "instructions": "Use these images for corresponding sections. Do not use placeholders.",
+    "image_urls": [
+      {
+        "category": "hero_background",
+        "description": "Mauritius coastal mountains landscape",
+        "url": "https://images.pexels.com/photos/36731927/pexels-photo-36731927.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+      },
+      {
+        "category": "hero_background_alt",
+        "description": "Mauritius lush green mountains and lagoon",
+        "url": "https://images.pexels.com/photos/7415730/pexels-photo-7415730.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+      },
+      {
+        "category": "tour_snorkeling",
+        "description": "Snorkeling in turquoise waters",
+        "url": "https://images.pexels.com/photos/15018959/pexels-photo-15018959.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+      },
+      {
+        "category": "tour_hiking",
+        "description": "Hiking in dense green tropical jungle",
+        "url": "https://images.pexels.com/photos/8387277/pexels-photo-8387277.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+      },
+      {
+        "category": "tour_culture",
+        "description": "Creole culture and spicy shrimp food",
+        "url": "https://images.pexels.com/photos/32793278/pexels-photo-32793278.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+      },
+      {
+        "category": "avatar_placeholder",
+        "description": "A path in the middle of a tropical forest to represent adventurer",
+        "url": "https://images.unsplash.com/photo-1699575947488-30f08e71896b?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2OTV8MHwxfHNlYXJjaHw0fHx0cm9waWNhbCUyMGp1bmdsZSUyMGhpa2luZ3xlbnwwfHx8fDE3ODA3MDMzMzd8MA&ixlib=rb-4.1.0&q=85"
+      }
+    ]
+  },
+  "instructions_to_main_agent": [
+    "Strictly follow the color palette. DO NOT USE DEFAULT TAILWIND COLORS (like blue-500). Use the custom ones defined here.",
+    "Do NOT use 'Inter' font. Use 'Cabinet Grotesk' for headings and 'Manrope' for body.",
+    "Use Generous Spacing Philosophy. P-8, P-12, etc.",
+    "The Hero image needs a soft gradient overlay (e.g. bg-gradient-to-r from-black/60 to-transparent) to ensure text contrast, never a heavy solid blanket.",
+    "Design the map region playfully, as if unlocking new zones in a game.",
+    "Every button and input MUST have a `data-testid` attribute.",
+    "For components like tables, dropdowns, calendars, and dialogues, you MUST USE Shadcn components."
+  ]
+}
