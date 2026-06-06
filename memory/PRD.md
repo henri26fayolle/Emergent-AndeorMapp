@@ -27,6 +27,17 @@
 - AI travel companion "Ti Dodo".
 - Admin panel for tour-complete awarding.
 
+## What's been implemented (2026-02 / iteration 8 — CODEX, AUDIO LORE, GPX, VIRALITY)
+- ✅ **Region Codex panel** in RegionScene — 3 tabs (Listen / Read / Tracks), available even on LOCKED regions as a marketing/SEO surface
+- ✅ **AI-narrated audio lore** via OpenAI TTS `tts-1-hd` voice `fable` (storytelling tone), cached as MP3 on disk under `/app/backend/uploads/audio/{region_id}.mp3`, ~60-70s per region
+- ✅ **Written lore** seeded for all 5 regions (Le Morne UNESCO legend, Black River endemic forests, Sega birth on North Coast, etc.) — drop-cap typography, parchment styling
+- ✅ **GPX hike tracks** — admin upload with auto-parsed distance_km + elevation_m (handles GPX 1.0 + 1.1 namespaces), public download (free for visitors, marketing win)
+- ✅ **Admin lore editor** + audio regenerate buttons (PATCH invalidates the cached MP3 → next listener hears the new version)
+- ✅ **Admin GPX uploader** per tour with delete + automatic .gpx validation (extension, 5MB cap, content sniff)
+- ✅ **Shareable Badge PNG** — tap an owned badge in /badges to open a beautifully styled card (gradient + seal + lore title + player name + andeor.mu watermark). Save PNG via html2canvas or Web Share API to Instagram/WhatsApp
+- ✅ **Fullscreen video map** — replaced static PNG with looping H.264/VP9 MP4 + WebM fallback, self-hosted from `/public` (782KB MP4 / 339KB WebM), cover-fit via CSS container queries
+- ✅ All backend covered by 20/20 pytest cases in `/app/backend/tests/test_codex.py`
+
 ## What's been implemented (2026-02 / iteration 7 — MAP POLISH)
 - ✅ **Pin coordinates re-calibrated** per geography: North Coast at top, Port Louis above the central mountains, Black River on the red-roof house (west coast), East Lagoons on the eastern green strip, Le Morne on the south-west mountain
 - ✅ **Hover tooltip** per pin — speech-bubble showing region name + 1-line teaser (e.g. "Sega night · Naïma", "Blue Bay snorkel · Sanjay")
