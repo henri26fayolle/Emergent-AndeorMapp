@@ -52,6 +52,7 @@ export default function MapCinematic({ onDone }) {
             muted
             playsInline
             onEnded={finish}
+            onError={finish}
             onClick={finish}
             className="absolute inset-0 w-full h-full object-cover cursor-pointer"
           />

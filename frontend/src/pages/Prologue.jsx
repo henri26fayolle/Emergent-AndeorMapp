@@ -66,9 +66,11 @@ export default function Prologue() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
+  const finishingRef = useRef(false);
 
   // If user already logged in and tutorial completed, send them home.
   useEffect(() => {
+    if (finishingRef.current) return; // don't redirect mid-cinematic handoff
     if (user && user.tutorial_completed) navigate("/dashboard", { replace: true });
     else if (user && user.avatar) {
       setName(user.name || "");
@@ -124,6 +126,7 @@ export default function Prologue() {
   };
 
   const finishTutorial = async () => {
+    finishingRef.current = true;
     try {
       await api.patch("/me", { tutorial_completed: true });
       await refresh();
