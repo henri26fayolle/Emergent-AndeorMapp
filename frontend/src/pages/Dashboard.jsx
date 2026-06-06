@@ -84,29 +84,11 @@ export default function Dashboard() {
 
   return (
     <div className="fixed inset-0 overflow-hidden">
-      {/* Ocean backdrop — matches the cyan of the isometric island artwork */}
+      {/* Fallback ocean colour (visible only while the video loads) */}
       <div
         className="absolute inset-0"
-        style={{
-          background:
-            "radial-gradient(ellipse at 50% 30%, #7BC7D9 0%, #43A3BA 35%, #1F7892 75%, #004B56 100%)",
-        }}
+        style={{ background: "#3FA8C0" }}
       />
-      {/* Subtle moving sun-glint pattern over the ocean */}
-      <div
-        aria-hidden
-        className="absolute inset-0 opacity-25 mix-blend-overlay"
-        style={{
-          backgroundImage:
-            "radial-gradient(circle at 30% 20%, rgba(255,255,255,0.6) 0, transparent 8%)," +
-            "radial-gradient(circle at 70% 40%, rgba(255,255,255,0.4) 0, transparent 6%)," +
-            "radial-gradient(circle at 50% 75%, rgba(255,255,255,0.5) 0, transparent 7%)",
-          backgroundSize: "300px 300px",
-          animation: "oceanGlint 30s linear infinite",
-        }}
-      />
-      <style>{`@keyframes oceanGlint{0%{background-position:0 0,0 0,0 0}100%{background-position:300px 200px,-200px 250px,200px -250px}}`}</style>
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-jungle-700/40" />
 
       {/* Top-left welcome ribbon (auto-fades) */}
       <AnimatePresence>
@@ -138,15 +120,15 @@ export default function Dashboard() {
         )}
       </AnimatePresence>
 
-      {/* The world map — centered, large, parallax-tilted */}
+      {/* The world map — fullscreen video with pin overlay, gentle parallax tilt */}
       <div
-        className="absolute inset-0 z-10 flex items-center justify-center"
+        className="absolute inset-0 z-10"
         onMouseMove={onMouseMove}
         onMouseLeave={onMouseLeave}
         style={{ perspective: "1400px" }}
       >
         <div
-          className="relative w-[min(94vw,86vh)] aspect-square"
+          className="absolute inset-0"
           data-testid="world-map"
           style={{
             transform: `rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
