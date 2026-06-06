@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import { api, formatErr } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { AVATARS } from "@/lib/avatars";
@@ -134,19 +135,28 @@ export default function Prologue() {
 
   return (
     <div className="fixed inset-0 overflow-hidden bg-jungle-700">
-      {/* Backgrounds (cross-fade) */}
-      {BG.map((src, i) => (
-        <img
-          key={src}
-          src={src}
+      {/* Backgrounds (motion crossfade with subtle Ken Burns) */}
+      <AnimatePresence mode="sync">
+        <motion.img
+          key={bgIndex}
+          src={BG[bgIndex]}
           alt=""
-          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${i === bgIndex ? "opacity-100" : "opacity-0"}`}
+          className="absolute inset-0 w-full h-full object-cover"
+          initial={{ opacity: 0, scale: 1.08 }}
+          animate={{ opacity: 1, scale: 1.0 }}
+          exit={{ opacity: 0 }}
+          transition={{ opacity: { duration: 1.1, ease: "easeOut" }, scale: { duration: 8, ease: "easeOut" } }}
         />
-      ))}
+      </AnimatePresence>
       <div className="absolute inset-0 bg-gradient-to-b from-jungle-700/30 via-jungle-700/20 to-jungle-700/85" />
 
       {/* Top bar */}
-      <div className="absolute top-0 inset-x-0 z-20 flex items-center justify-between p-6 lg:px-10 text-white">
+      <motion.div
+        initial={{ opacity: 0, y: -8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45, ease: "easeOut" }}
+        className="absolute top-0 inset-x-0 z-20 flex items-center justify-between p-6 lg:px-10 text-white"
+      >
         <Link to="/" data-testid="prologue-brand" className="flex items-center gap-2">
           <div className="w-9 h-9 rounded-2xl bg-sunset-500 flex items-center justify-center font-display font-bold">A</div>
           <div className="font-display text-lg">An Deor · Quest</div>
@@ -154,24 +164,30 @@ export default function Prologue() {
         <Link to="/login" data-testid="prologue-signin-link" className="text-sm font-semibold hover:underline">
           I already have an account →
         </Link>
-      </div>
+      </motion.div>
 
       {/* CONTENT */}
       <div className="absolute inset-0 z-10 flex flex-col">
         <div className="flex-1" />
 
-        {/* Dialogue beats (Pokemon-style box) */}
-        {isDialog && (
-          <button
-            onClick={advanceDialog}
-            data-testid={`prologue-dialog-${step}`}
-            className="group w-full text-left"
-          >
-            <div className="max-w-4xl mx-auto mb-8 mx-6 lg:mx-auto bg-sand-100/95 border-4 border-jungle-700 rounded-3xl shadow-lift p-6 lg:p-8 relative">
-              <div className="absolute -top-4 left-6 bg-jungle-700 text-sand-100 px-4 py-1 rounded-full font-display text-sm tracking-wider">
-                {current.speaker}
-              </div>
-              <p className="font-display text-2xl lg:text-3xl leading-snug text-ink-900 min-h-[4rem]">
+        <AnimatePresence mode="wait">
+          {/* Dialogue beats (Pokemon-style box) */}
+          {isDialog && (
+            <motion.button
+              key={`dialog-${step}`}
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.35, ease: "easeOut" }}
+              onClick={advanceDialog}
+              data-testid={`prologue-dialog-${step}`}
+              className="group w-full text-left"
+            >
+              <div className="max-w-4xl mx-auto mb-8 mx-6 lg:mx-auto bg-sand-100/95 border-4 border-jungle-700 rounded-3xl shadow-lift p-6 lg:p-8 relative">
+                <div className="absolute -top-4 left-6 bg-jungle-700 text-sand-100 px-4 py-1 rounded-full font-display text-sm tracking-wider">
+                  {current.speaker}
+                </div>
+                <p className="font-display text-2xl lg:text-3xl leading-snug text-ink-900 min-h-[4rem]">
                 {out}
                 <span className={`inline-block w-3 h-7 ml-1 align-middle bg-ink-900 ${done ? "opacity-0" : "animate-pulse"}`} />
               </p>
@@ -183,12 +199,19 @@ export default function Prologue() {
                 </span>
               </div>
             </div>
-          </button>
+          </motion.button>
         )}
 
         {/* Step 5: name input */}
         {step === 5 && (
-          <div className="max-w-xl mx-auto w-full px-6 pb-12">
+          <motion.div
+            key="scene-name"
+            initial={{ opacity: 0, y: 24, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -16, scale: 0.98 }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+            className="max-w-xl mx-auto w-full px-6 pb-12"
+          >
             <div className="bg-sand-100/95 border-4 border-jungle-700 rounded-3xl shadow-lift p-8">
               <div className="font-display text-xs tracking-[0.3em] uppercase text-sunset-500 mb-2">Step 1 of 3</div>
               <h2 className="font-display text-3xl mb-2">What shall I call you?</h2>
@@ -215,26 +238,38 @@ export default function Prologue() {
                 </Button>
               </div>
             </div>
-          </div>
+          </motion.div>
         )}
 
         {/* Step 6: avatar pick */}
         {step === 6 && (
-          <div className="max-w-5xl mx-auto w-full px-6 pb-12">
+          <motion.div
+            key="scene-avatar"
+            initial={{ opacity: 0, y: 24, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -16, scale: 0.98 }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+            className="max-w-5xl mx-auto w-full px-6 pb-12"
+          >
             <div className="bg-sand-100/95 border-4 border-jungle-700 rounded-3xl shadow-lift p-8">
               <div className="font-display text-xs tracking-[0.3em] uppercase text-sunset-500 mb-2">Step 2 of 3</div>
               <h2 className="font-display text-3xl mb-2">Choose your starter explorer</h2>
               <p className="text-ink-700 mb-6 text-sm">Don't stress — you can always swap later.</p>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {AVATARS.map((a) => {
+                {AVATARS.map((a, i) => {
                   const Icon = a.icon;
                   const selected = avatar === a.id;
                   return (
-                    <button
+                    <motion.button
                       key={a.id}
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3, delay: 0.1 + i * 0.06, ease: "easeOut" }}
+                      whileHover={{ y: -4 }}
+                      whileTap={{ scale: 0.97 }}
                       onClick={() => setAvatar(a.id)}
                       data-testid={`prologue-avatar-${a.id}`}
-                      className={`group text-left rounded-3xl p-5 border-2 transition-all ${selected ? "border-sunset-500 bg-white shadow-lift -translate-y-1" : "border-transparent bg-white/70 hover:bg-white"}`}
+                      className={`group text-left rounded-3xl p-5 border-2 transition-colors ${selected ? "border-sunset-500 bg-white shadow-lift" : "border-transparent bg-white/70 hover:bg-white"}`}
                     >
                       <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${a.gradient} text-white flex items-center justify-center mb-3`}>
                         <Icon className="w-7 h-7" />
@@ -242,7 +277,7 @@ export default function Prologue() {
                       <div className="font-display text-lg">{a.name}</div>
                       <div className="text-xs text-ink-700 mt-1">{a.bio}</div>
                       {selected && <div className="mt-3 text-xs font-bold uppercase tracking-[0.2em] text-sunset-500">Selected</div>}
-                    </button>
+                    </motion.button>
                   );
                 })}
               </div>
@@ -271,12 +306,19 @@ export default function Prologue() {
                 </Button>
               </div>
             </div>
-          </div>
+          </motion.div>
         )}
 
         {/* Step 7: register */}
         {step === 7 && (
-          <div className="max-w-md mx-auto w-full px-6 pb-12">
+          <motion.div
+            key="scene-register"
+            initial={{ opacity: 0, y: 24, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -16, scale: 0.98 }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+            className="max-w-md mx-auto w-full px-6 pb-12"
+          >
             <form onSubmit={submitRegister} className="bg-sand-100/95 border-4 border-jungle-700 rounded-3xl shadow-lift p-8" data-testid="prologue-register-form">
               <div className="font-display text-xs tracking-[0.3em] uppercase text-sunset-500 mb-2">Step 3 of 3</div>
               <h2 className="font-display text-3xl mb-2">Save your quest</h2>
@@ -299,12 +341,19 @@ export default function Prologue() {
                 </Button>
               </div>
             </form>
-          </div>
+          </motion.div>
         )}
 
         {/* Step 8-11: tutorial */}
         {step >= 8 && step <= 11 && (
-          <div className="max-w-3xl mx-auto w-full px-6 pb-12">
+          <motion.div
+            key={`scene-tutorial-${step}`}
+            initial={{ opacity: 0, x: 36 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -36 }}
+            transition={{ duration: 0.32, ease: "easeOut" }}
+            className="max-w-3xl mx-auto w-full px-6 pb-12"
+          >
             <div className="bg-sand-100/95 border-4 border-jungle-700 rounded-3xl shadow-lift p-8" data-testid={`prologue-tutorial-${step - 8}`}>
               <div className="font-display text-xs tracking-[0.3em] uppercase text-sunset-500 mb-2">How to play · {step - 7} / {TUTORIAL.length}</div>
               {(() => {
@@ -313,9 +362,14 @@ export default function Prologue() {
                 return (
                   <>
                     <div className="flex items-start gap-5 mb-6">
-                      <div className={`w-16 h-16 rounded-3xl ${t.color} text-white flex items-center justify-center shrink-0`}>
+                      <motion.div
+                        initial={{ scale: 0.6, rotate: -8, opacity: 0 }}
+                        animate={{ scale: 1, rotate: 0, opacity: 1 }}
+                        transition={{ duration: 0.45, ease: "backOut" }}
+                        className={`w-16 h-16 rounded-3xl ${t.color} text-white flex items-center justify-center shrink-0`}
+                      >
                         <Icon className="w-8 h-8" />
-                      </div>
+                      </motion.div>
                       <div>
                         <h2 className="font-display text-3xl">{t.title}</h2>
                         <p className="text-ink-700 mt-2 leading-relaxed">{t.body}</p>
@@ -323,7 +377,13 @@ export default function Prologue() {
                     </div>
                     <div className="flex gap-1 mb-4">
                       {TUTORIAL.map((_, i) => (
-                        <span key={i} className={`h-1.5 flex-1 rounded-full ${i <= step - 8 ? "bg-jungle-500" : "bg-sand-300"}`} />
+                        <motion.span
+                          key={i}
+                          initial={false}
+                          animate={{ backgroundColor: i <= step - 8 ? "#265448" : "#E5DFD3" }}
+                          transition={{ duration: 0.4 }}
+                          className="h-1.5 flex-1 rounded-full"
+                        />
                       ))}
                     </div>
                   </>
@@ -344,8 +404,9 @@ export default function Prologue() {
                 )}
               </div>
             </div>
-          </div>
+          </motion.div>
         )}
+        </AnimatePresence>
       </div>
     </div>
   );

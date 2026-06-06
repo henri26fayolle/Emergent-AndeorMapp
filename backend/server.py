@@ -173,6 +173,11 @@ class CompleteBookingIn(BaseModel):
     booking_id: str
 
 
+class CheckInIn(BaseModel):
+    booking_id: str
+    pin: str = Field(min_length=2)
+
+
 # ---------- Seed data ----------
 REGIONS = [
     {"region_id": "north-coast", "name": "North Coast", "description": "Grand Baie's vibrant lagoons & beaches.", "unlock_xp": 0, "icon": "Waves"},
@@ -183,11 +188,11 @@ REGIONS = [
 ]
 
 TOURS = [
-    {"tour_id": "t-snorkel-blue-bay", "name": "Blue Bay Snorkel Safari", "region": "east-lagoons", "category": "outdoor", "description": "Half-day snorkel inside Blue Bay marine park with a certified An Deor guide.", "price": 65, "duration": "4h", "xp_reward": 120, "card_id": "card-blue-bay", "badge_id": "badge-reef-friend", "image": "https://images.pexels.com/photos/15018959/pexels-photo-15018959.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"},
-    {"tour_id": "t-hike-le-pouce", "name": "Le Pouce Sunrise Hike", "region": "black-river", "category": "outdoor", "description": "Beat the sun to one of Mauritius' most iconic ridge tops.", "price": 45, "duration": "5h", "xp_reward": 150, "card_id": "card-le-pouce", "badge_id": "badge-ridge-runner", "image": "https://images.pexels.com/photos/8387277/pexels-photo-8387277.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"},
-    {"tour_id": "t-creole-table", "name": "Creole Table Cooking Class", "region": "central-culture", "category": "culture", "description": "Cook rougaille, vindaye & gateau piment with a local family.", "price": 80, "duration": "3h", "xp_reward": 100, "card_id": "card-creole-table", "badge_id": "badge-piment-master", "image": "https://images.pexels.com/photos/32793278/pexels-photo-32793278.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"},
-    {"tour_id": "t-kite-le-morne", "name": "Le Morne Kite Session", "region": "south-wild", "category": "outdoor", "description": "Beginner-friendly kitesurf coaching at one of the world's top spots.", "price": 130, "duration": "3h", "xp_reward": 180, "card_id": "card-le-morne", "badge_id": "badge-wind-rider", "image": "https://images.pexels.com/photos/7415730/pexels-photo-7415730.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"},
-    {"tour_id": "t-sega-night", "name": "Sega Night by the Sea", "region": "north-coast", "category": "culture", "description": "Sunset Sega lesson, fire dance & rhum arrangé tasting.", "price": 55, "duration": "3h", "xp_reward": 110, "card_id": "card-sega", "badge_id": "badge-sega-soul", "image": "https://images.pexels.com/photos/36731927/pexels-photo-36731927.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"},
+    {"tour_id": "t-snorkel-blue-bay", "name": "Blue Bay Snorkel Safari", "region": "east-lagoons", "category": "outdoor", "description": "Half-day snorkel inside Blue Bay marine park with a certified An Deor guide.", "price": 65, "duration": "4h", "xp_reward": 120, "card_id": "card-blue-bay", "badge_id": "badge-reef-friend", "guide_pin": "REEF42", "image": "https://images.pexels.com/photos/15018959/pexels-photo-15018959.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"},
+    {"tour_id": "t-hike-le-pouce", "name": "Le Pouce Sunrise Hike", "region": "black-river", "category": "outdoor", "description": "Beat the sun to one of Mauritius' most iconic ridge tops.", "price": 45, "duration": "5h", "xp_reward": 150, "card_id": "card-le-pouce", "badge_id": "badge-ridge-runner", "guide_pin": "RIDGE07", "image": "https://images.pexels.com/photos/8387277/pexels-photo-8387277.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"},
+    {"tour_id": "t-creole-table", "name": "Creole Table Cooking Class", "region": "central-culture", "category": "culture", "description": "Cook rougaille, vindaye & gateau piment with a local family.", "price": 80, "duration": "3h", "xp_reward": 100, "card_id": "card-creole-table", "badge_id": "badge-piment-master", "guide_pin": "PIMENT9", "image": "https://images.pexels.com/photos/32793278/pexels-photo-32793278.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"},
+    {"tour_id": "t-kite-le-morne", "name": "Le Morne Kite Session", "region": "south-wild", "category": "outdoor", "description": "Beginner-friendly kitesurf coaching at one of the world's top spots.", "price": 130, "duration": "3h", "xp_reward": 180, "card_id": "card-le-morne", "badge_id": "badge-wind-rider", "guide_pin": "WIND88", "image": "https://images.pexels.com/photos/7415730/pexels-photo-7415730.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"},
+    {"tour_id": "t-sega-night", "name": "Sega Night by the Sea", "region": "north-coast", "category": "culture", "description": "Sunset Sega lesson, fire dance & rhum arrangé tasting.", "price": 55, "duration": "3h", "xp_reward": 110, "card_id": "card-sega", "badge_id": "badge-sega-soul", "guide_pin": "SEGA21", "image": "https://images.pexels.com/photos/36731927/pexels-photo-36731927.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"},
 ]
 
 QUESTS = [
@@ -213,6 +218,13 @@ async def seed_data():
     # Tours
     if await db.tours.count_documents({}) == 0:
         await db.tours.insert_many([dict(t) for t in TOURS])
+    else:
+        # Idempotent migration: add guide_pin to existing tours
+        for t in TOURS:
+            await db.tours.update_one(
+                {"tour_id": t["tour_id"]},
+                {"$set": {"guide_pin": t["guide_pin"]}},
+            )
     # Quests
     if await db.quests.count_documents({}) == 0:
         await db.quests.insert_many([dict(q) for q in QUESTS])
@@ -386,13 +398,13 @@ async def list_regions():
 
 @api.get("/tours")
 async def list_tours():
-    rows = await db.tours.find({}, {"_id": 0}).to_list(100)
+    rows = await db.tours.find({}, {"_id": 0, "guide_pin": 0}).to_list(100)
     return rows
 
 
 @api.get("/tours/{tour_id}")
 async def get_tour(tour_id: str):
-    t = await db.tours.find_one({"tour_id": tour_id}, {"_id": 0})
+    t = await db.tours.find_one({"tour_id": tour_id}, {"_id": 0, "guide_pin": 0})
     if not t:
         raise HTTPException(404, "Tour not found")
     return t
@@ -455,14 +467,8 @@ async def list_bookings(user: dict = Depends(get_current_user)):
     return rows
 
 
-@api.post("/bookings/complete")
-async def complete_booking(payload: CompleteBookingIn, user: dict = Depends(get_current_user)):
-    # Allow self-complete for MVP demo (in real life this would be admin-only)
-    booking = await db.bookings.find_one({"booking_id": payload.booking_id}, {"_id": 0})
-    if not booking:
-        raise HTTPException(404, "Booking not found")
-    if booking["user_id"] != user["user_id"] and user.get("role") != "admin":
-        raise HTTPException(403, "Forbidden")
+async def _apply_completion(booking: dict) -> dict:
+    """Mark booking completed and award XP / regions / cards / badges / rewards. Idempotent."""
     if booking.get("status") == "completed":
         return {"ok": True, "already": True}
     tour = await db.tours.find_one({"tour_id": booking["tour_id"]}, {"_id": 0})
@@ -473,7 +479,6 @@ async def complete_booking(payload: CompleteBookingIn, user: dict = Depends(get_
     new_xp = target_user.get("xp", 0) + tour.get("xp_reward", 50)
     regions = set(target_user.get("regions_unlocked", []))
     regions.add(tour["region"])
-    # Unlock additional regions if XP threshold passed
     all_regions = await db.regions.find({}, {"_id": 0}).to_list(50)
     for r in all_regions:
         if new_xp >= r.get("unlock_xp", 0):
@@ -496,11 +501,10 @@ async def complete_booking(payload: CompleteBookingIn, user: dict = Depends(get_
         }},
     )
     await db.bookings.update_one(
-        {"booking_id": payload.booking_id},
+        {"booking_id": booking["booking_id"]},
         {"$set": {"status": "completed", "completed_at": datetime.now(timezone.utc).isoformat()}},
     )
 
-    # Issue rewards if XP threshold reached and not already granted
     templates = await db.reward_templates.find({}, {"_id": 0}).to_list(50)
     granted = []
     existing_rewards = await db.user_rewards.find({"user_id": booking["user_id"]}, {"_id": 0}).to_list(100)
@@ -533,6 +537,31 @@ async def complete_booking(payload: CompleteBookingIn, user: dict = Depends(get_
         "badge_unlocked": tour.get("badge_id"),
         "rewards_granted": granted,
     }
+
+
+@api.post("/bookings/complete")
+async def complete_booking(payload: CompleteBookingIn, _: dict = Depends(require_admin)):
+    booking = await db.bookings.find_one({"booking_id": payload.booking_id}, {"_id": 0})
+    if not booking:
+        raise HTTPException(404, "Booking not found")
+    return await _apply_completion(booking)
+
+
+@api.post("/bookings/checkin")
+async def checkin_booking(payload: CheckInIn, user: dict = Depends(get_current_user)):
+    booking = await db.bookings.find_one({"booking_id": payload.booking_id}, {"_id": 0})
+    if not booking:
+        raise HTTPException(404, "Booking not found")
+    if booking["user_id"] != user["user_id"]:
+        raise HTTPException(403, "This is not your booking")
+    tour = await db.tours.find_one({"tour_id": booking["tour_id"]}, {"_id": 0})
+    if not tour:
+        raise HTTPException(404, "Tour not found")
+    expected = (tour.get("guide_pin") or "").strip().upper()
+    submitted = payload.pin.strip().upper()
+    if not expected or submitted != expected:
+        raise HTTPException(400, "Invalid guide PIN. Ask your An Deor guide for the code.")
+    return await _apply_completion(booking)
 
 
 # ---------- Player content ----------
@@ -628,6 +657,13 @@ async def admin_bookings(_: dict = Depends(require_admin)):
 @api.get("/admin/users")
 async def admin_users(_: dict = Depends(require_admin)):
     rows = await db.users.find({}, {"_id": 0, "password_hash": 0}).sort("xp", -1).to_list(500)
+    return rows
+
+
+@api.get("/admin/tours")
+async def admin_tours(_: dict = Depends(require_admin)):
+    """Returns full tour records WITH guide_pin so admins can share PINs with their guides."""
+    rows = await db.tours.find({}, {"_id": 0}).to_list(100)
     return rows
 
 

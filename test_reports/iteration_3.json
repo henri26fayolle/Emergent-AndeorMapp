@@ -1,0 +1,48 @@
+{
+  "summary": "Iteration 3 testing complete for An Deor Quest. Backend: 54/54 pytest pass (16 NEW iter3 tests + 38 regression). New iter3 coverage: (a) /api/tours and /api/tours/{id} verified to exclude 'guide_pin'; (b) /api/bookings/complete is admin-only (player 403, admin force-award 200); (c) /api/bookings/checkin: correct PIN awards XP, wrong PIN 400 with 'Invalid guide PIN' message, case-insensitive matching (reef42 works), other user's booking 403, missing booking 404, unauth 401; smoke check for all 5 PINs (REEF42/RIDGE07/PIMENT9/WIND88/SEGA21); (d) /api/admin/tours returns all 5 tours including guide_pin (403 for player, 401 for anon); (e) PATCH /api/me {avatar} persists and is reflected in next /auth/me. Frontend: end-to-end Playwright flow exercised — admin login -> open header avatar dropdown -> Change explorer -> pick 'hiker' -> save (dialog closes, GET /auth/me returns avatar='hiker'); /admin Guide PINs tab shows all 5 tours with correct PINs; new player registers via API, books Blue Bay, /quests shows 'Check in' button (no 'Mark completed'), wrong PIN displays inline error, correct PIN (lowercase 'reef42') triggers toast '+120 XP! Level 2. 1 reward(s) unlocked!', booking shows 'Completed' badge, /auth/me reflects xp=120 level=2. Regression for the previously failing /bookings/complete test in test_andeor_api.py was updated to use /bookings/checkin with the seeded PIN.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/bookings/checkin", "issue": "Pin is sent in JSON body — fine for now, but consider rate-limiting per booking to prevent brute-force of 6-char PINs (5 of the codes are short alpha-num)."},
+      {"endpoint": "/api/admin/tours", "issue": "No write endpoint to rotate guide_pin from UI yet — admins can only read seeded PINs (acceptable for MVP)."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "/quests bookings panel", "issues": ["The hint text 'Ask your An Deor guide for the tour PIN at the end of the experience...' renders with awkward inline wrapping around the kbd-styled 'tour' and 'PIN' chips on narrow widths — visual only, content clear."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration3_checkin.py",
+    "/app/backend/tests/test_iteration2_prologue.py",
+    "/app/backend/tests/test_andeor_api.py",
+    "/app/test_reports/pytest/pytest_results.xml",
+    "/app/test_reports/pytest/iter3_results.xml"
+  ],
+  "action_items": [
+    "(Optional) Add brute-force rate limit on /api/bookings/checkin per booking_id+user (e.g. 5 wrong PINs / 5 min) before this goes to real guides.",
+    "(Optional, carry-over) Whitelist allowed avatar IDs on PATCH /api/me (diver/hiker/foodie/dancer/surfer/scholar)."
+  ],
+  "critical_code_review_comments": [
+    "server.py /api/bookings/checkin correctly: validates booking ownership BEFORE comparing PIN (no info leak), strips+uppercases both sides for case-insensitive match, uses shared _apply_completion helper so reward logic is DRY between admin force-complete and player check-in.",
+    "/api/tours and /api/tours/{id} use projection {'guide_pin': 0} to strip the PIN — verified empirically. Good security default.",
+    "_apply_completion is correctly idempotent (returns {ok:true, already:true} on already-completed booking) for BOTH admin /complete and player /checkin paths.",
+    "Header.jsx mounts AvatarPickerDialog inline and uses sonner toast 'Explorer changed' — works end-to-end; AuthContext.refresh() is called so avatar updates immediately without reload.",
+    "Quests.jsx 'Check in' button replaces 'Mark completed' for confirmed bookings; PIN dialog uses controlled state + error reset on close — UX is clean.",
+    "Admin.jsx 'Guide PINs' tab loads /api/admin/tours separately from bookings tab so a non-admin player visiting /admin still gets 403 only on the admin-protected calls (UI shows the Admin shell only for role==='admin' anyway).",
+    "Frontend has no leak of guide_pin to non-admin: /api/tours response is consumed in /tours and /quests and never carries the field; only /admin Guide PINs tab fetches /api/admin/tours which requires admin role."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration3_checkin.py (NEW)",
+    "/app/backend/tests/test_andeor_api.py (updated 2 tests: complete->checkin since /complete is now admin-only)"
+  ],
+  "success_rate": {"backend": "100% (54/54)", "frontend": "100% of tested flows (avatar swap, admin PINs tab, player check-in happy & wrong-PIN paths)"},
+  "test_credentials": "Admin: admin@andeor.mu / AnDeor2026!. Test players registered dynamically (TEST_iter3_*@example.com, player_iter3_*@example.com). PINs: REEF42 (Blue Bay), RIDGE07 (Le Pouce), PIMENT9 (Creole), WIND88 (Le Morne), SEGA21 (Sega Night).",
+  "seed_data_creation": "~12 TEST_iter3_*@example.com users + 1 player_iter3_*@example.com via UI register. All write to MongoDB; cleanup not required for these short-lived test users.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Run `pytest /app/backend/tests/` — 54 tests, ~16s. Iteration 3 tests live in test_iteration3_checkin.py. IMPORTANT: when adding new flows that mark a booking completed, the player must call POST /api/bookings/checkin with the seeded PIN (e.g., REEF42); only admin can call /api/bookings/complete. PINs are stripped+uppercased server-side, so accept any case from clients. The header avatar swap uses data-testid='header-avatar-trigger' -> 'menu-change-avatar' -> dialog 'avatar-picker-dialog' with picker buttons 'avatar-picker-{id}' (id ∈ diver/hiker/foodie/dancer/surfer/scholar) and save 'avatar-picker-save'. Admin Guide PINs tab is data-testid='admin-tab-tours' showing data-testid='admin-pin-{tour_id}' cells.",
+  "rca_of_the_issue": "No bugs found. The previous test_andeor_api.py::test_complete_awards_xp_and_unlocks would have started failing in iter3 because /bookings/complete is now admin-only; it was updated to call /bookings/checkin with PIN 'REEF42' so the regression suite stays green and faithfully exercises the new player path."
+}

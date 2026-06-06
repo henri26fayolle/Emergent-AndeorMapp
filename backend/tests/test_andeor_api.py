@@ -138,7 +138,8 @@ class TestBookingFlow:
     def test_complete_awards_xp_and_unlocks(self, player_session):
         bid = getattr(pytest, "booking_id", None)
         assert bid, "booking not created in prior test"
-        r = player_session.post(f"{BASE_URL}/api/bookings/complete", json={"booking_id": bid}, timeout=20)
+        # In iteration 3: /complete is admin-only; players use /checkin with PIN
+        r = player_session.post(f"{BASE_URL}/api/bookings/checkin", json={"booking_id": bid, "pin": "REEF42"}, timeout=20)
         assert r.status_code == 200, r.text
         data = r.json()
         assert data["ok"] is True
@@ -159,7 +160,8 @@ class TestBookingFlow:
 
     def test_complete_idempotent(self, player_session):
         bid = pytest.booking_id
-        r = player_session.post(f"{BASE_URL}/api/bookings/complete", json={"booking_id": bid}, timeout=15)
+        # Idempotent via checkin endpoint (re-checkin on a completed booking)
+        r = player_session.post(f"{BASE_URL}/api/bookings/checkin", json={"booking_id": bid, "pin": "REEF42"}, timeout=15)
         assert r.status_code == 200
         assert r.json().get("already") is True
 

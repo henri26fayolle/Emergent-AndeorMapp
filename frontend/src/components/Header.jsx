@@ -1,10 +1,12 @@
 import { Link, NavLink, useNavigate } from "react-router-dom";
+import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Compass, Map, Award, Gift, Trophy, Sparkles, LogOut, ShieldCheck } from "lucide-react";
+import { Compass, Map, Award, Gift, Trophy, Sparkles, LogOut, ShieldCheck, UserCog } from "lucide-react";
 import { findAvatar } from "@/lib/avatars";
+import AvatarPickerDialog from "@/components/AvatarPickerDialog";
 
 const navItems = [
   { to: "/dashboard", label: "Map", icon: Map },
@@ -19,6 +21,7 @@ const navItems = [
 export default function Header() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [avatarOpen, setAvatarOpen] = useState(false);
   const avatarMeta = user?.avatar ? findAvatar(user.avatar) : null;
   const AvatarIcon = avatarMeta?.icon;
 
@@ -83,7 +86,11 @@ export default function Header() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuLabel className="font-display">{user.name || user.email}</DropdownMenuLabel>
+                  {avatarMeta && <DropdownMenuLabel className="text-xs font-normal text-ink-700 -mt-2">{avatarMeta.name}</DropdownMenuLabel>}
                   <DropdownMenuSeparator />
+                  <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setAvatarOpen(true); }} data-testid="menu-change-avatar">
+                    <UserCog className="w-4 h-4 mr-2" /> Change explorer
+                  </DropdownMenuItem>
                   {user.role === "admin" && (
                     <DropdownMenuItem onClick={() => navigate("/admin")} data-testid="menu-admin">
                       <ShieldCheck className="w-4 h-4 mr-2" /> Admin
@@ -102,6 +109,7 @@ export default function Header() {
           )}
         </div>
       </div>
+      <AvatarPickerDialog open={avatarOpen} onOpenChange={setAvatarOpen} />
     </header>
   );
 }

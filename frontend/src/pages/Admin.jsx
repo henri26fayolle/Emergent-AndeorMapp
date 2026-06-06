@@ -7,15 +7,21 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
+import { Copy, KeyRound } from "lucide-react";
 
 export default function Admin() {
   const [bookings, setBookings] = useState([]);
   const [users, setUsers] = useState([]);
+  const [tours, setTours] = useState([]);
   const [busyId, setBusyId] = useState(null);
 
   const load = async () => {
-    const [b, u] = await Promise.all([api.get("/admin/bookings"), api.get("/admin/users")]);
-    setBookings(b.data); setUsers(u.data);
+    const [b, u, t] = await Promise.all([
+      api.get("/admin/bookings"),
+      api.get("/admin/users"),
+      api.get("/admin/tours"),
+    ]);
+    setBookings(b.data); setUsers(u.data); setTours(t.data);
   };
   useEffect(() => { load(); }, []);
 
@@ -32,6 +38,11 @@ export default function Admin() {
     }
   };
 
+  const copyPin = async (pin) => {
+    try { await navigator.clipboard.writeText(pin); toast.success(`Guide PIN copied: ${pin}`); }
+    catch { toast.error("Copy failed"); }
+  };
+
   return (
     <div className="min-h-screen paper-bg">
       <Header />
@@ -39,12 +50,13 @@ export default function Admin() {
         <div className="mb-8">
           <span className="chip">Admin</span>
           <h1 className="font-display text-4xl mt-3">Mission control</h1>
-          <p className="text-ink-700">Mark tours completed to award XP, cards, badges, and rewards to players.</p>
+          <p className="text-ink-700">Manage guide PINs, view players, and override-award completed bookings.</p>
         </div>
 
         <Tabs defaultValue="bookings">
           <TabsList className="rounded-full bg-sand-200 p-1" data-testid="admin-tabs">
             <TabsTrigger value="bookings" data-testid="admin-tab-bookings" className="rounded-full">Bookings</TabsTrigger>
+            <TabsTrigger value="tours" data-testid="admin-tab-tours" className="rounded-full">Guide PINs</TabsTrigger>
             <TabsTrigger value="users" data-testid="admin-tab-users" className="rounded-full">Players</TabsTrigger>
           </TabsList>
 
@@ -58,7 +70,7 @@ export default function Admin() {
                     <TableHead>Tour</TableHead>
                     <TableHead>Date</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Action</TableHead>
+                    <TableHead className="text-right">Override</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -72,9 +84,48 @@ export default function Admin() {
                       <TableCell className="text-right">
                         {b.status !== "completed" && (
                           <Button size="sm" onClick={() => complete(b.booking_id)} disabled={busyId === b.booking_id} data-testid={`admin-complete-${b.booking_id}`} className="rounded-full bg-sunset-500 hover:bg-sunset-600 text-white">
-                            Award
+                            Force-award
                           </Button>
                         )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="tours">
+            <Card className="card-clay p-6 mt-4" data-testid="admin-tours-card">
+              <p className="text-sm text-ink-700 mb-5 flex items-start gap-2">
+                <KeyRound className="w-4 h-4 mt-0.5 text-sunset-500 shrink-0" />
+                Share these guide PINs with the An Deor tour guides. Players enter the PIN at the end of the tour to claim XP & rewards.
+              </p>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Tour</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead>XP</TableHead>
+                    <TableHead>Guide PIN</TableHead>
+                    <TableHead className="text-right">Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {tours.map((t) => (
+                    <TableRow key={t.tour_id} data-testid={`admin-tour-${t.tour_id}`}>
+                      <TableCell className="font-semibold">{t.name}</TableCell>
+                      <TableCell><Badge className="rounded-full bg-sand-200 text-ink-900">{t.category}</Badge></TableCell>
+                      <TableCell className="tabular-nums">{t.xp_reward}</TableCell>
+                      <TableCell>
+                        <span data-testid={`admin-pin-${t.tour_id}`} className="font-display text-lg tracking-[0.25em] uppercase bg-sand-100 border border-dashed border-ink-900/20 rounded-xl px-3 py-1.5">
+                          {t.guide_pin}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="outline" size="sm" onClick={() => copyPin(t.guide_pin)} data-testid={`admin-pin-copy-${t.tour_id}`} className="rounded-full">
+                          <Copy className="w-3.5 h-3.5 mr-1" /> Copy
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}

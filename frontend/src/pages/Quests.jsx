@@ -6,14 +6,20 @@ import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Compass, CheckCircle2, Sparkles } from "lucide-react";
+import { Compass, CheckCircle2, Sparkles, KeyRound, ScanLine } from "lucide-react";
 
 export default function Quests() {
   const { refresh } = useAuth();
   const [quests, setQuests] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [busyId, setBusyId] = useState(null);
+  const [checkInBooking, setCheckInBooking] = useState(null);
+  const [pin, setPin] = useState("");
+  const [error, setError] = useState(null);
 
   const load = async () => {
     const [q, b] = await Promise.all([api.get("/quests"), api.get("/bookings")]);
@@ -21,18 +27,28 @@ export default function Quests() {
   };
   useEffect(() => { load(); }, []);
 
-  const complete = async (booking_id) => {
-    setBusyId(booking_id);
+  const openCheckIn = (b) => {
+    setCheckInBooking(b);
+    setPin("");
+    setError(null);
+  };
+
+  const submitCheckIn = async (e) => {
+    e?.preventDefault?.();
+    if (!checkInBooking) return;
+    setBusyId(checkInBooking.booking_id);
+    setError(null);
     try {
-      const { data } = await api.post("/bookings/complete", { booking_id });
-      if (data.already) toast.info("Already completed.");
+      const { data } = await api.post("/bookings/checkin", { booking_id: checkInBooking.booking_id, pin });
+      if (data.already) toast.info("Already checked in.");
       else {
         toast.success(`+${data.xp_gained} XP! Level ${data.new_level}. ${data.rewards_granted?.length ? `🎁 ${data.rewards_granted.length} reward(s) unlocked!` : ""}`);
       }
+      setCheckInBooking(null);
       await refresh();
       await load();
     } catch (e) {
-      toast.error(formatErr(e.response?.data?.detail) || e.message);
+      setError(formatErr(e.response?.data?.detail) || e.message);
     } finally {
       setBusyId(null);
     }
@@ -45,6 +61,7 @@ export default function Quests() {
         <div className="mb-10">
           <span className="chip">Quests</span>
           <h1 className="font-display text-4xl lg:text-5xl mt-3">Goals worth chasing</h1>
+          <p className="text-ink-700 mt-2 max-w-xl">Complete a tour with your guide and check in with their PIN to claim XP, cards and rewards.</p>
         </div>
 
         <div className="grid lg:grid-cols-12 gap-6">
@@ -75,7 +92,10 @@ export default function Quests() {
 
           <Card className="card-clay p-6 lg:col-span-5" data-testid="my-bookings-panel">
             <h3 className="font-display text-2xl mb-1">My bookings</h3>
-            <p className="text-sm text-ink-700 mb-5">Complete a booking after the experience to claim XP & rewards.</p>
+            <p className="text-sm text-ink-700 mb-5 flex items-start gap-2">
+              <ScanLine className="w-4 h-4 mt-0.5 text-sunset-500 shrink-0" />
+              Ask your An Deor guide for the <strong>tour PIN</strong> at the end of the experience, then check in to claim your rewards.
+            </p>
             {bookings.length === 0 ? (
               <div className="text-ink-700 text-center py-10">
                 <Compass className="w-10 h-10 mx-auto mb-3 text-sunset-500" />
@@ -85,7 +105,7 @@ export default function Quests() {
               <div className="space-y-3">
                 {bookings.map((b) => (
                   <div key={b.booking_id} className="p-4 rounded-2xl bg-sand-100 border border-sand-300" data-testid={`booking-row-${b.booking_id}`}>
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-3">
                       <div>
                         <div className="font-semibold">{b.tour_name}</div>
                         <div className="text-xs text-ink-700">{b.date}</div>
@@ -93,8 +113,12 @@ export default function Quests() {
                       {b.status === "completed" ? (
                         <Badge className="rounded-full bg-jungle-500 text-white">Completed</Badge>
                       ) : (
-                        <Button onClick={() => complete(b.booking_id)} disabled={busyId === b.booking_id} data-testid={`complete-${b.booking_id}`} className="rounded-full bg-sunset-500 hover:bg-sunset-600 text-white">
-                          {busyId === b.booking_id ? "…" : "Mark completed"}
+                        <Button
+                          onClick={() => openCheckIn(b)}
+                          data-testid={`checkin-${b.booking_id}`}
+                          className="rounded-full bg-sunset-500 hover:bg-sunset-600 text-white"
+                        >
+                          <KeyRound className="w-4 h-4 mr-1" /> Check in
                         </Button>
                       )}
                     </div>
@@ -105,6 +129,45 @@ export default function Quests() {
           </Card>
         </div>
       </main>
+
+      <Dialog open={!!checkInBooking} onOpenChange={(o) => !o && setCheckInBooking(null)}>
+        <DialogContent data-testid="checkin-dialog" className="rounded-3xl max-w-md">
+          {checkInBooking && (
+            <form onSubmit={submitCheckIn}>
+              <DialogHeader>
+                <DialogTitle className="font-display text-2xl flex items-center gap-2">
+                  <KeyRound className="w-6 h-6 text-sunset-500" /> Guide check-in
+                </DialogTitle>
+                <DialogDescription className="text-ink-700">
+                  Enter the PIN your An Deor guide gave you for <strong>{checkInBooking.tour_name}</strong>.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="py-4">
+                <Label htmlFor="pin-input" className="text-xs tracking-[0.2em] uppercase">Guide PIN</Label>
+                <Input
+                  id="pin-input"
+                  data-testid="checkin-pin-input"
+                  autoFocus
+                  value={pin}
+                  onChange={(e) => setPin(e.target.value)}
+                  placeholder="e.g. REEF42"
+                  className="rounded-2xl mt-2 text-center text-2xl font-display tracking-[0.3em] uppercase h-14"
+                />
+                {error && <div className="text-sunset-600 text-sm mt-3" data-testid="checkin-error">{error}</div>}
+                <div className="text-xs text-ink-700 mt-3">
+                  Don't have a PIN? Your guide will share it at the end of the tour. (Demo PINs: REEF42, RIDGE07, PIMENT9, WIND88, SEGA21.)
+                </div>
+              </div>
+              <DialogFooter className="gap-2">
+                <Button type="button" variant="outline" onClick={() => setCheckInBooking(null)} data-testid="checkin-cancel" className="rounded-full">Cancel</Button>
+                <Button type="submit" disabled={!pin.trim() || busyId === checkInBooking.booking_id} data-testid="checkin-submit" className="rounded-full bg-jungle-500 hover:bg-jungle-600 text-white">
+                  {busyId === checkInBooking.booking_id ? "Verifying…" : "Claim rewards"}
+                </Button>
+              </DialogFooter>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
