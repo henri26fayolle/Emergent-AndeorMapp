@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
@@ -7,11 +8,14 @@ import MapMauritius from "@/components/MapMauritius";
 import RegionScene from "@/components/RegionScene";
 import PortLouisCityMap from "@/components/PortLouisCityMap";
 import AvatarHud from "@/components/AvatarHud";
+import MapCinematic from "@/components/MapCinematic";
 import { Sparkles } from "lucide-react";
 import { startAmbient, stopAmbient, playUnlock, playOpenScene } from "@/lib/sound";
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [regions, setRegions] = useState([]);
   const [tours, setTours] = useState([]);
@@ -20,6 +24,7 @@ export default function Dashboard() {
   const [activeRegion, setActiveRegion] = useState(null);
   const [showPortLouis, setShowPortLouis] = useState(false);
   const [greetingDone, setGreetingDone] = useState(false);
+  const [cinematic, setCinematic] = useState(!!location.state?.cinematic);
   const prevUnlockedRef = useRef(null);
 
   const load = async () => {
@@ -181,6 +186,17 @@ export default function Dashboard() {
 
       {/* Floating avatar — opens codex/audio/lore/GPX drawer */}
       <AvatarHud profile={profile} regions={regions} />
+
+      {/* Cinematic intro from the Prologue — fades into the live map */}
+      {cinematic && (
+        <MapCinematic
+          onDone={() => {
+            setCinematic(false);
+            // Clear router state so refreshing the page doesn't replay it
+            navigate(location.pathname, { replace: true, state: {} });
+          }}
+        />
+      )}
     </div>
   );
 }

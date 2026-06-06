@@ -127,9 +127,9 @@ export default function Prologue() {
     try {
       await api.patch("/me", { tutorial_completed: true });
       await refresh();
-      navigate("/dashboard");
+      navigate("/dashboard", { state: { cinematic: true } });
     } catch {
-      navigate("/dashboard");
+      navigate("/dashboard", { state: { cinematic: true } });
     }
   };
 
