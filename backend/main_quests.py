@@ -106,8 +106,60 @@ MAIN_QUESTS = [
 ]
 
 
-# New tours to add to the catalog (waterfalls + Port Louis venues + North Coast venues).
+# New tours to add to the catalog (waterfalls + Port Louis venues + North Coast venues + Le Morne venues).
 EXTRA_TOURS = [
+    # ---- Le Morne / south-wild venues (rendered on the Le Morne sub-map artwork) ----
+    {
+        "tour_id": "t-lemorne-hike",
+        "name": "Le Morne Brabant Heritage Hike",
+        "region": "south-wild",
+        "subregion": "south-wild",
+        "city_x": 24,
+        "city_y": 72,
+        "category": "outdoor",
+        "description": "Guided UNESCO ridge ascent — sacred to the maroons who took refuge here. Cliffs, cross + ocean panorama.",
+        "price": 70,
+        "duration": "5h",
+        "xp_reward": 160,
+        "card_id": "card-lemorne-ridge",
+        "badge_id": "badge-maroon-runner",
+        "guide_pin": "MORNE1",
+        "image": "https://images.pexels.com/photos/7415730/pexels-photo-7415730.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+    },
+    {
+        "tour_id": "t-ile-aux-benitiers",
+        "name": "Île aux Bénitiers Boat Day",
+        "region": "south-wild",
+        "subregion": "south-wild",
+        "city_x": 12,
+        "city_y": 18,
+        "category": "outdoor",
+        "description": "Boat trip to the postcard islet — dolphin watching at sunrise, snorkel stops, BBQ ashore.",
+        "price": 95,
+        "duration": "7h",
+        "xp_reward": 150,
+        "card_id": "card-benitiers",
+        "badge_id": "badge-dolphin-watcher",
+        "guide_pin": "BENIT1",
+        "image": "https://images.pexels.com/photos/15018959/pexels-photo-15018959.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+    },
+    {
+        "tour_id": "t-la-prairie-beach",
+        "name": "La Prairie Wild Beach",
+        "region": "south-wild",
+        "subregion": "south-wild",
+        "city_x": 32,
+        "city_y": 92,
+        "category": "outdoor",
+        "description": "The wildest beach of the south — turquoise lagoon framed by tall filao, no resorts, only sand and wind.",
+        "price": 15,
+        "duration": "2h",
+        "xp_reward": 45,
+        "card_id": "card-la-prairie",
+        "badge_id": "badge-wild-shore",
+        "guide_pin": "PRAIR1",
+        "image": "https://images.pexels.com/photos/36731927/pexels-photo-36731927.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+    },
     # ---- North Coast venues (rendered on the North Coast sub-map artwork) ----
     {
         "tour_id": "t-pereybere-snorkel",
@@ -326,6 +378,16 @@ async def seed_main_quests(db):
     await db.tours.update_one(
         {"tour_id": "t-sega-night"},
         {"$set": {"subregion": "north-coast", "city_x": 50, "city_y": 78}},
+    )
+
+    # Patch existing Le Morne tours with south-wild sub-map coords
+    await db.tours.update_one(
+        {"tour_id": "t-kite-le-morne"},
+        {"$set": {"subregion": "south-wild", "city_x": 18, "city_y": 88}},
+    )
+    await db.tours.update_one(
+        {"tour_id": "t-chamarel-falls"},
+        {"$set": {"subregion": "south-wild", "city_x": 62, "city_y": 28}},
     )
 
     # Insert/update the main quests

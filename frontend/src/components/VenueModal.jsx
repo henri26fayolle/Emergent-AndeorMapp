@@ -136,6 +136,7 @@ export default function VenueModal({ open, tourId, focusedQuest, isFocused, onCl
                       const sub = data.subregion;
                       if (sub === "port-louis") return "Port Louis · Venue";
                       if (sub === "north-coast") return "North Coast · Venue";
+                      if (sub === "south-wild") return "Le Morne · Venue";
                       if (sub) return `${sub.replace(/-/g, " ")} · Venue`;
                       return (data.region || "Mauritius").replace(/-/g, " ");
                     })()}

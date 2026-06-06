@@ -8,6 +8,7 @@ import MapMauritius from "@/components/MapMauritius";
 import RegionScene from "@/components/RegionScene";
 import PortLouisCityMap from "@/components/PortLouisCityMap";
 import NorthCoastMap from "@/components/NorthCoastMap";
+import LeMorneMap from "@/components/LeMorneMap";
 import AvatarHud from "@/components/AvatarHud";
 import MapCinematic from "@/components/MapCinematic";
 import { Sparkles } from "lucide-react";
@@ -25,6 +26,7 @@ export default function Dashboard() {
   const [activeRegion, setActiveRegion] = useState(null);
   const [showPortLouis, setShowPortLouis] = useState(false);
   const [showNorthCoast, setShowNorthCoast] = useState(false);
+  const [showLeMorne, setShowLeMorne] = useState(false);
   const [greetingDone, setGreetingDone] = useState(false);
   const [cinematic, setCinematic] = useState(!!location.state?.cinematic);
   const prevUnlockedRef = useRef(null);
@@ -151,6 +153,9 @@ export default function Dashboard() {
               } else if (r.region_id === "north-coast") {
                 playOpenScene();
                 setShowNorthCoast(true);
+              } else if (r.region_id === "south-wild") {
+                playOpenScene();
+                setShowLeMorne(true);
               } else {
                 setActiveRegion(r);
               }
@@ -193,6 +198,16 @@ export default function Dashboard() {
       <NorthCoastMap
         open={showNorthCoast}
         onClose={async () => { setShowNorthCoast(false); await load(); }}
+        tours={tours}
+        focusedQuest={focused}
+        focusedTourIds={new Set(focused?.tour_ids || [])}
+        profile={profile}
+      />
+
+      {/* Le Morne / south-wild sub-map */}
+      <LeMorneMap
+        open={showLeMorne}
+        onClose={async () => { setShowLeMorne(false); await load(); }}
         tours={tours}
         focusedQuest={focused}
         focusedTourIds={new Set(focused?.tour_ids || [])}
