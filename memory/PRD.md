@@ -27,6 +27,16 @@
 - AI travel companion "Ti Dodo".
 - Admin panel for tour-complete awarding.
 
+## What's been implemented (2026-02 / iteration 9 — MAIN QUESTS + PORT LOUIS SUB-MAP)
+- ✅ **Main Quests system** — 4 curated tour-bundle sagas (Wayfarer's Trail / Cascade Chaser / Heritage Keeper / Compleat Explorer) with theme colors, lore intros, epilogues, AOV-based reward tiers
+- ✅ **Multi-enrol, single-focus** — players can join many Main Quests at once; one "Focused" quest drives the map highlight
+- ✅ **Focused-pin aura on world map** — themed coloured halo + ring + drifting sparkles + remaining-count badge for any region containing a tour from the focused quest
+- ✅ **Auto reward generation** — `/main-quests/check-completion` is idempotent; on full completion it emits a unique 50% bundle voucher code + adds a unique title + marks AOV tier (T-shirt at Rs 15k, Partner Goodie at Rs 25k)
+- ✅ **Port Louis sub-map** — full-screen city overlay (custom artwork) with 6 venue pins (Aapravasi Ghat, Blue Penny, Central Market, Cathedral, Citadelle, Champ de Mars); booking dialog inline; focused-quest highlight applied to pins
+- ✅ **/quests page renamed** to "Side Quests"; new `/main-quests` route added to RpgHud (Crown icon)
+- ✅ **New tours seeded** — Tamarind 7-Cascades, Chamarel Falls + 6 Port Louis venues, all with city_x/city_y coords for sub-map rendering
+- ✅ All backend covered by 14/14 pytest cases in `/app/backend/tests/test_iter7_main_quests.py`
+
 ## What's been implemented (2026-02 / iteration 8 — CODEX, AUDIO LORE, GPX, VIRALITY)
 - ✅ **Region Codex panel** in RegionScene — 3 tabs (Listen / Read / Tracks), available even on LOCKED regions as a marketing/SEO surface
 - ✅ **AI-narrated audio lore** via OpenAI TTS `tts-1-hd` voice `fable` (storytelling tone), cached as MP3 on disk under `/app/backend/uploads/audio/{region_id}.mp3`, ~60-70s per region
