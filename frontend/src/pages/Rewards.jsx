@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Gift, Copy, Sparkles } from "lucide-react";
 
-export default function Rewards() {
+export default function Rewards({ embedded = false }) {
   const [rewards, setRewards] = useState([]);
 
   const load = async () => { const { data } = await api.get("/me/rewards"); setRewards(data); };
@@ -17,12 +17,8 @@ export default function Rewards() {
   const copy = async (code) => { try { await navigator.clipboard.writeText(code); toast.success(`Code copied: ${code}`); } catch { toast.error("Copy failed"); } };
   const redeem = async (id) => { try { await api.post(`/me/rewards/${id}/redeem`); toast.success("Marked as redeemed"); load(); } catch (e) { toast.error(formatErr(e.response?.data?.detail) || e.message); } };
 
-  return (
-    <div className="min-h-screen relative overflow-x-hidden bg-jungle-700">
-      <div className="absolute inset-0 paper-bg" />
-      <RpgHud />
-
-      <main className="relative max-w-5xl mx-auto px-6 lg:px-10 py-10 lg:py-14 pb-44 pr-20">
+  const inner = (
+    <main className={embedded ? "relative" : "relative max-w-5xl mx-auto px-6 lg:px-10 py-10 lg:py-14 pb-44 pr-20"}>
         <motion.header initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-10">
           <span className="chip"><Gift className="w-3 h-3" /> Treasure vault</span>
           <h1 className="font-display text-4xl lg:text-5xl mt-3 italic">Your spoils of adventure</h1>
@@ -79,6 +75,14 @@ export default function Rewards() {
           </div>
         )}
       </main>
+  );
+
+  if (embedded) return inner;
+  return (
+    <div className="min-h-screen relative overflow-x-hidden bg-jungle-700">
+      <div className="absolute inset-0 paper-bg" />
+      <RpgHud />
+      {inner}
     </div>
   );
 }

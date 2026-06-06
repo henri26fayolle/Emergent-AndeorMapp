@@ -29,7 +29,7 @@ const BADGE_LIB = {
 const rarityColor = { Common: "bg-ocean-100 text-ocean-700", Rare: "bg-sun-500 text-ink-900", Epic: "bg-sunset-500 text-white" };
 const toneStyle = { ocean: "bg-ocean-500 text-white", jungle: "bg-jungle-500 text-white", sunset: "bg-sunset-500 text-white" };
 
-export default function Badges() {
+export default function Badges({ embedded = false }) {
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [tours, setTours] = useState([]);
@@ -42,7 +42,7 @@ export default function Badges() {
     });
   }, []);
 
-  if (!profile) return <div className="min-h-screen flex items-center justify-center bg-jungle-700"><div className="font-display text-xl text-sand-100 animate-pulse">Opening your bag…</div></div>;
+  if (!profile) return <div className={embedded ? "py-12 text-center" : "min-h-screen flex items-center justify-center bg-jungle-700"}><div className={`font-display text-xl animate-pulse ${embedded ? "text-ink-900" : "text-sand-100"}`}>Opening your bag…</div></div>;
 
   const ownedCards = new Set(profile.cards || []);
   const ownedBadges = new Set(profile.badges || []);
@@ -72,12 +72,8 @@ export default function Badges() {
 
   const unowned = Object.entries(CARD_LIB).filter(([id]) => !ownedCards.has(id));
 
-  return (
-    <div className="min-h-screen relative overflow-x-hidden bg-jungle-700">
-      <div className="absolute inset-0 paper-bg" />
-      <RpgHud />
-
-      <main className="relative max-w-6xl mx-auto px-6 lg:px-10 py-10 lg:py-14 pb-44 pr-20">
+  const inner = (
+    <main className={embedded ? "relative" : "relative max-w-6xl mx-auto px-6 lg:px-10 py-10 lg:py-14 pb-44 pr-20"}>
         <motion.header initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-10">
           <span className="chip"><Layers className="w-3 h-3" /> Adventurer's bag</span>
           <h1 className="font-display text-4xl lg:text-5xl mt-3 italic">Cards & seals</h1>
@@ -219,6 +215,14 @@ export default function Badges() {
           player={{ name: profile.name, level: profile.level }}
         />
       </main>
+  );
+
+  if (embedded) return inner;
+  return (
+    <div className="min-h-screen relative overflow-x-hidden bg-jungle-700">
+      <div className="absolute inset-0 paper-bg" />
+      <RpgHud />
+      {inner}
     </div>
   );
 }

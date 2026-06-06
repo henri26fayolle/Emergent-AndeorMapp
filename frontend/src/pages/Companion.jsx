@@ -15,7 +15,7 @@ const SUGGESTIONS = [
   "Best month to snorkel Blue Bay?",
 ];
 
-export default function Companion() {
+export default function Companion({ embedded = false }) {
   const [history, setHistory] = useState([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -46,11 +46,8 @@ export default function Companion() {
     }
   };
 
-  return (
-    <div className="min-h-screen relative overflow-x-hidden bg-jungle-700">
-      <div className="absolute inset-0 paper-bg" />
-      <RpgHud />
-      <main className="relative max-w-4xl mx-auto px-6 lg:px-10 py-10 pb-44 pr-20">
+  const inner = (
+      <main className={embedded ? "relative" : "relative max-w-4xl mx-auto px-6 lg:px-10 py-10 pb-44 pr-20"}>
         <div className="mb-8 flex items-center gap-4">
           <div className="w-14 h-14 rounded-3xl bg-jungle-500 text-white flex items-center justify-center shadow-lift">
             <Wind className="w-7 h-7" />
@@ -62,7 +59,7 @@ export default function Companion() {
           </div>
         </div>
 
-        <Card className="card-clay flex flex-col" style={{ height: "calc(100vh - 280px)", minHeight: 480 }} data-testid="chat-card">
+        <Card className="card-clay flex flex-col" style={{ height: embedded ? "min(70vh, 560px)" : "calc(100vh - 280px)", minHeight: embedded ? 360 : 480 }} data-testid="chat-card">
           <ScrollArea className="flex-1 p-6">
             {history.length === 0 && (
               <div className="text-center py-10">
@@ -118,6 +115,14 @@ export default function Companion() {
           </form>
         </Card>
       </main>
+  );
+
+  if (embedded) return inner;
+  return (
+    <div className="min-h-screen relative overflow-x-hidden bg-jungle-700">
+      <div className="absolute inset-0 paper-bg" />
+      <RpgHud />
+      {inner}
     </div>
   );
 }

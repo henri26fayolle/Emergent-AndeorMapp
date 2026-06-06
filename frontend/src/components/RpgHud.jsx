@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { findAvatar } from "@/lib/avatars";
 import AvatarPickerDialog from "@/components/AvatarPickerDialog";
+import HudPanels from "@/components/HudPanels";
 import { isMuted, toggleMuted, subscribe, playClick } from "@/lib/sound";
 import { useEffect, useState } from "react";
 import {
@@ -10,13 +11,13 @@ import {
 } from "lucide-react";
 
 const ACTIONS = [
-  { id: "map",     to: "/dashboard",   label: "Map",        icon: MapIcon },
-  { id: "saga",    to: "/main-quests", label: "Main Quests",icon: Crown },
-  { id: "journal", to: "/quests",      label: "Side Quests",icon: ScrollText },
-  { id: "bag",     to: "/badges",      label: "Bag",        icon: Layers },
-  { id: "vault",   to: "/rewards",     label: "Vault",      icon: Gift },
-  { id: "rank",    to: "/leaderboard", label: "Rank",       icon: Trophy },
-  { id: "ti-dodo", to: "/companion",   label: "Ti Dodo",    icon: MessageCircle },
+  { id: "map",     panel: null,          label: "Map",         icon: MapIcon },
+  { id: "saga",    panel: "main-quests", label: "Main Quests", icon: Crown },
+  { id: "journal", panel: "quests",      label: "Side Quests", icon: ScrollText },
+  { id: "bag",     panel: "badges",      label: "Bag",         icon: Layers },
+  { id: "vault",   panel: "rewards",     label: "Vault",       icon: Gift },
+  { id: "rank",    panel: "leaderboard", label: "Rank",        icon: Trophy },
+  { id: "ti-dodo", panel: "companion",   label: "Ti Dodo",     icon: MessageCircle },
 ];
 
 export default function RpgHud() {
@@ -24,12 +25,23 @@ export default function RpgHud() {
   const navigate = useNavigate();
   const location = useLocation();
   const [avatarOpen, setAvatarOpen] = useState(false);
+  const [openPanel, setOpenPanel] = useState(null);
   const [muted, setMuted] = useState(isMuted());
   useEffect(() => subscribe(setMuted), []);
 
   if (!user) return null;
 
-  const goto = (to) => { playClick(); navigate(to); };
+  const handleAction = (a) => {
+    playClick();
+    if (a.panel === null) {
+      // Map button — go to (or stay on) dashboard, close any open panel
+      setOpenPanel(null);
+      if (location.pathname !== "/dashboard") navigate("/dashboard");
+    } else {
+      setOpenPanel(a.panel);
+    }
+  };
+
   const meta = user.avatar ? findAvatar(user.avatar) : null;
   const Icon = meta?.icon;
   const xpInLevel = user.xp % 100;
@@ -46,7 +58,7 @@ export default function RpgHud() {
         data-testid="rpg-hud-actions"
       >
         {ACTIONS.map((a, i) => {
-          const active = location.pathname.startsWith(a.to);
+          const active = a.panel ? openPanel === a.panel : location.pathname === "/dashboard" && !openPanel;
           const ActionIcon = a.icon;
           return (
             <motion.button
@@ -56,7 +68,7 @@ export default function RpgHud() {
               transition={{ delay: 0.08 + i * 0.06, duration: 0.3, ease: "easeOut" }}
               whileHover={{ x: -4, scale: 1.04 }}
               whileTap={{ scale: 0.94 }}
-              onClick={() => goto(a.to)}
+              onClick={() => handleAction(a)}
               data-testid={`hud-action-${a.id}`}
               className={`group relative w-12 h-12 rounded-2xl flex items-center justify-center shadow-clay border border-black/5 transition-colors ${
                 active
@@ -79,7 +91,7 @@ export default function RpgHud() {
             transition={{ delay: 0.5, duration: 0.3 }}
             whileHover={{ x: -4 }}
             whileTap={{ scale: 0.94 }}
-            onClick={() => goto("/admin")}
+            onClick={() => { playClick(); navigate("/admin"); }}
             data-testid="hud-action-admin"
             className="w-12 h-12 rounded-2xl flex items-center justify-center bg-sunset-500 text-white shadow-clay"
             title="Admin"
@@ -117,6 +129,9 @@ export default function RpgHud() {
 
       {/* AvatarPickerDialog mounted globally so it can be triggered from the floating avatar HUD */}
       <AvatarPickerDialog open={avatarOpen} onOpenChange={setAvatarOpen} />
+
+      {/* In-game modal panels — Main Quests / Side Quests / Bag / Vault / Rank / Ti Dodo */}
+      <HudPanels panel={openPanel} onClose={() => setOpenPanel(null)} />
 
       <style>{`@keyframes hudShimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}`}</style>
     </>

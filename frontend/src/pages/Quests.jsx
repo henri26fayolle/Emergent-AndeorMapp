@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import { Compass, CheckCircle2, Sparkles, KeyRound, ScrollText } from "lucide-react";
 import { playChime, playClick } from "@/lib/sound";
 
-export default function Quests() {
+export default function Quests({ embedded = false }) {
   const { refresh } = useAuth();
   const [quests, setQuests] = useState([]);
   const [bookings, setBookings] = useState([]);
@@ -51,12 +51,8 @@ export default function Quests() {
     }
   };
 
-  return (
-    <div className="min-h-screen relative overflow-x-hidden bg-jungle-700">
-      <div className="absolute inset-0 paper-bg" />
-      <RpgHud />
-
-      <main className="relative max-w-6xl mx-auto px-6 lg:px-10 py-10 lg:py-14 pb-44 pr-20">
+  const inner = (
+    <main className={embedded ? "relative" : "relative max-w-6xl mx-auto px-6 lg:px-10 py-10 lg:py-14 pb-44 pr-20"}>
         <motion.header initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-10">
           <span className="chip"><ScrollText className="w-3 h-3" /> Side quests</span>
           <h1 className="font-display text-4xl lg:text-5xl mt-3 italic">Small feats, big bragging rights</h1>
@@ -146,8 +142,10 @@ export default function Quests() {
           </div>
         </div>
       </main>
+  );
 
-      <Dialog open={!!checkInBooking} onOpenChange={(o) => !o && setCheckInBooking(null)}>
+  const dialogs = (
+    <Dialog open={!!checkInBooking} onOpenChange={(o) => !o && setCheckInBooking(null)}>
         <DialogContent data-testid="checkin-dialog" className="rounded-3xl max-w-md">
           {checkInBooking && (
             <form onSubmit={submitCheckIn}>
@@ -183,6 +181,15 @@ export default function Quests() {
           )}
         </DialogContent>
       </Dialog>
+  );
+
+  if (embedded) return (<>{inner}{dialogs}</>);
+  return (
+    <div className="min-h-screen relative overflow-x-hidden bg-jungle-700">
+      <div className="absolute inset-0 paper-bg" />
+      <RpgHud />
+      {inner}
+      {dialogs}
     </div>
   );
 }

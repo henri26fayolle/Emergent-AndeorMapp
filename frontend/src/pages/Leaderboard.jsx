@@ -10,16 +10,12 @@ import { Trophy, Medal, Crown } from "lucide-react";
 const rankIcon = (i) => (i === 0 ? Crown : i === 1 ? Trophy : Medal);
 const rankColor = (i) => (i === 0 ? "text-sun-500" : i === 1 ? "text-sunset-500" : "text-ocean-500");
 
-export default function Leaderboard() {
+export default function Leaderboard({ embedded = false }) {
   const [rows, setRows] = useState([]);
   useEffect(() => { api.get("/leaderboard").then((r) => setRows(r.data)); }, []);
 
-  return (
-    <div className="min-h-screen relative overflow-x-hidden bg-jungle-700">
-      <div className="absolute inset-0 paper-bg" />
-      <RpgHud />
-
-      <main className="relative max-w-3xl mx-auto px-6 lg:px-10 py-10 lg:py-14 pb-44 pr-20">
+  const inner = (
+    <main className={embedded ? "relative" : "relative max-w-3xl mx-auto px-6 lg:px-10 py-10 lg:py-14 pb-44 pr-20"}>
         <motion.header initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-10">
           <span className="chip"><Trophy className="w-3 h-3" /> Hall of explorers</span>
           <h1 className="font-display text-4xl lg:text-5xl mt-3 italic">Top of Mauritius</h1>
@@ -59,6 +55,14 @@ export default function Leaderboard() {
           </ul>
         </Card>
       </main>
+  );
+
+  if (embedded) return inner;
+  return (
+    <div className="min-h-screen relative overflow-x-hidden bg-jungle-700">
+      <div className="absolute inset-0 paper-bg" />
+      <RpgHud />
+      {inner}
     </div>
   );
 }
