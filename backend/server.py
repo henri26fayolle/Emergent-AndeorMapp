@@ -1,89 +1,621 @@
-from fastapi import FastAPI, APIRouter
 from dotenv import load_dotenv
-from starlette.middleware.cors import CORSMiddleware
-from motor.motor_asyncio import AsyncIOMotorClient
-import os
-import logging
 from pathlib import Path
-from pydantic import BaseModel, Field, ConfigDict
-from typing import List
-import uuid
-from datetime import datetime, timezone
-
 
 ROOT_DIR = Path(__file__).parent
-load_dotenv(ROOT_DIR / '.env')
+load_dotenv(ROOT_DIR / ".env")
 
-# MongoDB connection
-mongo_url = os.environ['MONGO_URL']
+import os
+import uuid
+import logging
+import secrets
+import bcrypt
+import jwt
+from datetime import datetime, timezone, timedelta
+from typing import Optional, List, Literal
+
+from fastapi import FastAPI, APIRouter, Depends, HTTPException, Request, Response, Cookie
+from fastapi.responses import JSONResponse
+from starlette.middleware.cors import CORSMiddleware
+from motor.motor_asyncio import AsyncIOMotorClient
+from pydantic import BaseModel, Field, EmailStr, ConfigDict
+import httpx
+
+from emergentintegrations.llm.chat import LlmChat, UserMessage
+
+# ---------- MongoDB ----------
+mongo_url = os.environ["MONGO_URL"]
 client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
+db = client[os.environ["DB_NAME"]]
 
-# Create the main app without a prefix
-app = FastAPI()
+# ---------- App ----------
+app = FastAPI(title="An Deor Quest API")
+api = APIRouter(prefix="/api")
 
-# Create a router with the /api prefix
-api_router = APIRouter(prefix="/api")
+JWT_SECRET = os.environ["JWT_SECRET"]
+JWT_ALG = "HS256"
+EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
+EMERGENT_OAUTH_URL = "https://demobackend.emergentagent.com/auth/v1/env/oauth/session-data"
+
+logger = logging.getLogger("andeor")
+logging.basicConfig(level=logging.INFO)
 
 
-# Define Models
-class StatusCheck(BaseModel):
-    model_config = ConfigDict(extra="ignore")  # Ignore MongoDB's _id field
-    
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    client_name: str
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+# ---------- Helpers ----------
+def hash_password(pw: str) -> str:
+    return bcrypt.hashpw(pw.encode(), bcrypt.gensalt()).decode()
 
-class StatusCheckCreate(BaseModel):
-    client_name: str
 
-# Add your routes to the router instead of directly to app
-@api_router.get("/")
+def verify_password(pw: str, hashed: str) -> bool:
+    try:
+        return bcrypt.checkpw(pw.encode(), hashed.encode())
+    except Exception:
+        return False
+
+
+def create_access_token(user_id: str, email: str) -> str:
+    payload = {
+        "sub": user_id,
+        "email": email,
+        "type": "access",
+        "exp": datetime.now(timezone.utc) + timedelta(days=7),
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALG)
+
+
+def set_auth_cookie(response: Response, token: str):
+    response.set_cookie(
+        key="access_token",
+        value=token,
+        httponly=True,
+        secure=True,
+        samesite="none",
+        max_age=7 * 24 * 3600,
+        path="/",
+    )
+
+
+def public_user(u: dict) -> dict:
+    return {
+        "user_id": u["user_id"],
+        "email": u["email"],
+        "name": u.get("name", ""),
+        "picture": u.get("picture"),
+        "role": u.get("role", "player"),
+        "xp": u.get("xp", 0),
+        "level": u.get("level", 1),
+        "auth_provider": u.get("auth_provider", "password"),
+        "created_at": u.get("created_at"),
+    }
+
+
+def level_from_xp(xp: int) -> int:
+    # 100 XP per level, capped
+    return max(1, 1 + xp // 100)
+
+
+# ---------- Auth dependency ----------
+async def get_current_user(request: Request) -> dict:
+    token = request.cookies.get("access_token") or request.cookies.get("session_token")
+    if not token:
+        auth = request.headers.get("Authorization", "")
+        if auth.startswith("Bearer "):
+            token = auth[7:]
+    if not token:
+        raise HTTPException(401, "Not authenticated")
+
+    # Try JWT first
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALG])
+        user = await db.users.find_one({"user_id": payload["sub"]}, {"_id": 0, "password_hash": 0})
+        if user:
+            return user
+    except jwt.PyJWTError:
+        pass
+
+    # Try Emergent session token
+    session = await db.user_sessions.find_one({"session_token": token}, {"_id": 0})
+    if session:
+        expires = session["expires_at"]
+        if isinstance(expires, str):
+            expires = datetime.fromisoformat(expires)
+        if expires.tzinfo is None:
+            expires = expires.replace(tzinfo=timezone.utc)
+        if expires > datetime.now(timezone.utc):
+            user = await db.users.find_one({"user_id": session["user_id"]}, {"_id": 0, "password_hash": 0})
+            if user:
+                return user
+    raise HTTPException(401, "Invalid or expired session")
+
+
+async def require_admin(user: dict = Depends(get_current_user)) -> dict:
+    if user.get("role") != "admin":
+        raise HTTPException(403, "Admin only")
+    return user
+
+
+# ---------- Models ----------
+class RegisterIn(BaseModel):
+    email: EmailStr
+    password: str = Field(min_length=6)
+    name: str = Field(min_length=1)
+
+
+class LoginIn(BaseModel):
+    email: EmailStr
+    password: str
+
+
+class SessionIn(BaseModel):
+    session_id: str
+
+
+class BookingIn(BaseModel):
+    tour_id: str
+    date: Optional[str] = None
+
+
+class ChatIn(BaseModel):
+    message: str
+    session_id: Optional[str] = None
+
+
+class CompleteBookingIn(BaseModel):
+    booking_id: str
+
+
+# ---------- Seed data ----------
+REGIONS = [
+    {"region_id": "north-coast", "name": "North Coast", "description": "Grand Baie's vibrant lagoons & beaches.", "unlock_xp": 0, "icon": "Waves"},
+    {"region_id": "black-river", "name": "Black River Gorges", "description": "Rainforests, peaks & endemic wildlife.", "unlock_xp": 100, "icon": "Mountain"},
+    {"region_id": "south-wild", "name": "Wild South", "description": "Le Morne, cliffs and surf breaks.", "unlock_xp": 250, "icon": "Wind"},
+    {"region_id": "east-lagoons", "name": "East Lagoons", "description": "Ile aux Cerfs and turquoise reefs.", "unlock_xp": 400, "icon": "Anchor"},
+    {"region_id": "central-culture", "name": "Central Cultural Belt", "description": "Port Louis markets, Sega & Creole heritage.", "unlock_xp": 600, "icon": "Landmark"},
+]
+
+TOURS = [
+    {"tour_id": "t-snorkel-blue-bay", "name": "Blue Bay Snorkel Safari", "region": "east-lagoons", "category": "outdoor", "description": "Half-day snorkel inside Blue Bay marine park with a certified An Deor guide.", "price": 65, "duration": "4h", "xp_reward": 120, "card_id": "card-blue-bay", "badge_id": "badge-reef-friend", "image": "https://images.pexels.com/photos/15018959/pexels-photo-15018959.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"},
+    {"tour_id": "t-hike-le-pouce", "name": "Le Pouce Sunrise Hike", "region": "black-river", "category": "outdoor", "description": "Beat the sun to one of Mauritius' most iconic ridge tops.", "price": 45, "duration": "5h", "xp_reward": 150, "card_id": "card-le-pouce", "badge_id": "badge-ridge-runner", "image": "https://images.pexels.com/photos/8387277/pexels-photo-8387277.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"},
+    {"tour_id": "t-creole-table", "name": "Creole Table Cooking Class", "region": "central-culture", "category": "culture", "description": "Cook rougaille, vindaye & gateau piment with a local family.", "price": 80, "duration": "3h", "xp_reward": 100, "card_id": "card-creole-table", "badge_id": "badge-piment-master", "image": "https://images.pexels.com/photos/32793278/pexels-photo-32793278.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"},
+    {"tour_id": "t-kite-le-morne", "name": "Le Morne Kite Session", "region": "south-wild", "category": "outdoor", "description": "Beginner-friendly kitesurf coaching at one of the world's top spots.", "price": 130, "duration": "3h", "xp_reward": 180, "card_id": "card-le-morne", "badge_id": "badge-wind-rider", "image": "https://images.pexels.com/photos/7415730/pexels-photo-7415730.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"},
+    {"tour_id": "t-sega-night", "name": "Sega Night by the Sea", "region": "north-coast", "category": "culture", "description": "Sunset Sega lesson, fire dance & rhum arrangé tasting.", "price": 55, "duration": "3h", "xp_reward": 110, "card_id": "card-sega", "badge_id": "badge-sega-soul", "image": "https://images.pexels.com/photos/36731927/pexels-photo-36731927.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"},
+]
+
+QUESTS = [
+    {"quest_id": "q-first-tour", "name": "First Steps", "description": "Book your very first An Deor tour.", "type": "book_tour", "xp_reward": 30, "icon": "Compass"},
+    {"quest_id": "q-meet-guide", "name": "Meet a Guide", "description": "Complete a tour and rate your guide.", "type": "interact_guide", "xp_reward": 40, "icon": "UserCheck"},
+    {"quest_id": "q-three-regions", "name": "Triple Threat", "description": "Unlock 3 regions of Mauritius.", "type": "unlock_regions", "target": 3, "xp_reward": 80, "icon": "Map"},
+    {"quest_id": "q-culture-vulture", "name": "Culture Vulture", "description": "Complete 2 cultural experiences.", "type": "category_culture", "target": 2, "xp_reward": 60, "icon": "Drama"},
+    {"quest_id": "q-collector", "name": "Collector", "description": "Earn 4 collectible cards.", "type": "collect_cards", "target": 4, "xp_reward": 100, "icon": "Layers"},
+]
+
+REWARD_TEMPLATES = [
+    {"reward_id": "r-disc-10", "type": "discount", "title": "10% off next tour", "description": "Apply at checkout on andeor.mu", "code_prefix": "ANDEOR10", "min_xp": 100, "partner": "An Deor"},
+    {"reward_id": "r-disc-20", "type": "discount", "title": "20% off any cultural tour", "description": "Limited cultural categories.", "code_prefix": "CULTURE20", "min_xp": 300, "partner": "An Deor"},
+    {"reward_id": "r-rhum", "type": "goodie", "title": "Free Rhum Arrangé Tasting", "description": "At Chamarel Distillery, on us.", "code_prefix": "CHAMAREL", "min_xp": 500, "partner": "Chamarel Distillery"},
+    {"reward_id": "r-spa", "type": "goodie", "title": "Spa Voucher 30 min", "description": "Tropical Spa - Grand Baie.", "code_prefix": "SPA30", "min_xp": 800, "partner": "Tropical Spa"},
+]
+
+
+async def seed_data():
+    # Regions
+    if await db.regions.count_documents({}) == 0:
+        await db.regions.insert_many([dict(r) for r in REGIONS])
+    # Tours
+    if await db.tours.count_documents({}) == 0:
+        await db.tours.insert_many([dict(t) for t in TOURS])
+    # Quests
+    if await db.quests.count_documents({}) == 0:
+        await db.quests.insert_many([dict(q) for q in QUESTS])
+    # Reward templates
+    if await db.reward_templates.count_documents({}) == 0:
+        await db.reward_templates.insert_many([dict(r) for r in REWARD_TEMPLATES])
+
+
+async def seed_admin():
+    email = os.environ["ADMIN_EMAIL"].lower()
+    password = os.environ["ADMIN_PASSWORD"]
+    existing = await db.users.find_one({"email": email})
+    if existing is None:
+        await db.users.insert_one({
+            "user_id": f"user_{uuid.uuid4().hex[:12]}",
+            "email": email,
+            "name": "An Deor Admin",
+            "password_hash": hash_password(password),
+            "role": "admin",
+            "auth_provider": "password",
+            "xp": 0,
+            "level": 1,
+            "regions_unlocked": ["north-coast"],
+            "cards": [],
+            "badges": [],
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        })
+    elif not verify_password(password, existing.get("password_hash", "")):
+        await db.users.update_one({"email": email}, {"$set": {"password_hash": hash_password(password), "role": "admin"}})
+
+
+@app.on_event("startup")
+async def startup():
+    await db.users.create_index("email", unique=True)
+    await db.user_sessions.create_index("session_token", unique=True)
+    await db.bookings.create_index("user_id")
+    await seed_data()
+    await seed_admin()
+    logger.info("An Deor backend ready.")
+
+
+@app.on_event("shutdown")
+async def shutdown():
+    client.close()
+
+
+# ---------- Auth endpoints ----------
+@api.post("/auth/register")
+async def register(payload: RegisterIn, response: Response):
+    email = payload.email.lower()
+    if await db.users.find_one({"email": email}):
+        raise HTTPException(400, "Email already registered")
+    user_id = f"user_{uuid.uuid4().hex[:12]}"
+    doc = {
+        "user_id": user_id,
+        "email": email,
+        "name": payload.name,
+        "password_hash": hash_password(payload.password),
+        "role": "player",
+        "auth_provider": "password",
+        "xp": 0,
+        "level": 1,
+        "regions_unlocked": ["north-coast"],
+        "cards": [],
+        "badges": [],
+        "picture": None,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.users.insert_one(doc)
+    token = create_access_token(user_id, email)
+    set_auth_cookie(response, token)
+    return {"user": public_user(doc), "token": token}
+
+
+@api.post("/auth/login")
+async def login(payload: LoginIn, response: Response):
+    email = payload.email.lower()
+    user = await db.users.find_one({"email": email})
+    if not user or not user.get("password_hash") or not verify_password(payload.password, user["password_hash"]):
+        raise HTTPException(401, "Invalid email or password")
+    token = create_access_token(user["user_id"], email)
+    set_auth_cookie(response, token)
+    return {"user": public_user(user), "token": token}
+
+
+@api.post("/auth/logout")
+async def logout(response: Response):
+    response.delete_cookie("access_token", path="/")
+    response.delete_cookie("session_token", path="/")
+    return {"ok": True}
+
+
+@api.get("/auth/me")
+async def me(user: dict = Depends(get_current_user)):
+    return public_user(user)
+
+
+@api.post("/auth/google/session")
+async def google_session(payload: SessionIn, response: Response):
+    # Exchange Emergent session_id -> session_token, create/update user
+    async with httpx.AsyncClient(timeout=15) as http:
+        r = await http.get(EMERGENT_OAUTH_URL, headers={"X-Session-ID": payload.session_id})
+    if r.status_code != 200:
+        raise HTTPException(401, "Invalid OAuth session")
+    data = r.json()
+    email = data["email"].lower()
+    existing = await db.users.find_one({"email": email})
+    if existing:
+        user_id = existing["user_id"]
+        await db.users.update_one({"user_id": user_id}, {"$set": {"name": data.get("name", existing.get("name")), "picture": data.get("picture"), "auth_provider": existing.get("auth_provider", "google")}})
+    else:
+        user_id = f"user_{uuid.uuid4().hex[:12]}"
+        await db.users.insert_one({
+            "user_id": user_id,
+            "email": email,
+            "name": data.get("name", ""),
+            "picture": data.get("picture"),
+            "role": "player",
+            "auth_provider": "google",
+            "xp": 0,
+            "level": 1,
+            "regions_unlocked": ["north-coast"],
+            "cards": [],
+            "badges": [],
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        })
+
+    session_token = data["session_token"]
+    expires_at = datetime.now(timezone.utc) + timedelta(days=7)
+    await db.user_sessions.update_one(
+        {"session_token": session_token},
+        {"$set": {"user_id": user_id, "session_token": session_token, "expires_at": expires_at.isoformat(), "created_at": datetime.now(timezone.utc).isoformat()}},
+        upsert=True,
+    )
+    response.set_cookie(
+        key="session_token",
+        value=session_token,
+        httponly=True,
+        secure=True,
+        samesite="none",
+        max_age=7 * 24 * 3600,
+        path="/",
+    )
+    user_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0, "password_hash": 0})
+    return {"user": public_user(user_doc)}
+
+
+# ---------- Catalog ----------
+@api.get("/regions")
+async def list_regions():
+    rows = await db.regions.find({}, {"_id": 0}).to_list(50)
+    return rows
+
+
+@api.get("/tours")
+async def list_tours():
+    rows = await db.tours.find({}, {"_id": 0}).to_list(100)
+    return rows
+
+
+@api.get("/tours/{tour_id}")
+async def get_tour(tour_id: str):
+    t = await db.tours.find_one({"tour_id": tour_id}, {"_id": 0})
+    if not t:
+        raise HTTPException(404, "Tour not found")
+    return t
+
+
+@api.get("/quests")
+async def list_quests(user: dict = Depends(get_current_user)):
+    quests = await db.quests.find({}, {"_id": 0}).to_list(50)
+    # Compute progress per quest
+    bookings = await db.bookings.find({"user_id": user["user_id"]}, {"_id": 0}).to_list(500)
+    completed_bookings = [b for b in bookings if b.get("status") == "completed"]
+    completed_tour_ids = {b["tour_id"] for b in completed_bookings}
+    completed_tours = await db.tours.find({"tour_id": {"$in": list(completed_tour_ids)}}, {"_id": 0}).to_list(100)
+    culture_count = sum(1 for t in completed_tours if t.get("category") == "culture")
+    regions_unlocked = len(user.get("regions_unlocked", []))
+    cards_count = len(user.get("cards", []))
+    for q in quests:
+        if q["type"] == "book_tour":
+            q["progress"] = min(1, len(bookings))
+            q["target"] = 1
+        elif q["type"] == "interact_guide":
+            q["progress"] = min(1, len(completed_bookings))
+            q["target"] = 1
+        elif q["type"] == "unlock_regions":
+            q["progress"] = regions_unlocked
+        elif q["type"] == "category_culture":
+            q["progress"] = culture_count
+        elif q["type"] == "collect_cards":
+            q["progress"] = cards_count
+        else:
+            q["progress"] = 0
+            q["target"] = q.get("target", 1)
+        q["completed"] = q["progress"] >= q.get("target", 1)
+    return quests
+
+
+# ---------- Bookings ----------
+@api.post("/bookings")
+async def create_booking(payload: BookingIn, user: dict = Depends(get_current_user)):
+    tour = await db.tours.find_one({"tour_id": payload.tour_id}, {"_id": 0})
+    if not tour:
+        raise HTTPException(404, "Tour not found")
+    booking = {
+        "booking_id": f"bk_{uuid.uuid4().hex[:10]}",
+        "user_id": user["user_id"],
+        "tour_id": payload.tour_id,
+        "tour_name": tour["name"],
+        "status": "confirmed",
+        "date": payload.date or (datetime.now(timezone.utc) + timedelta(days=7)).date().isoformat(),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.bookings.insert_one(booking)
+    booking.pop("_id", None)
+    return booking
+
+
+@api.get("/bookings")
+async def list_bookings(user: dict = Depends(get_current_user)):
+    rows = await db.bookings.find({"user_id": user["user_id"]}, {"_id": 0}).sort("created_at", -1).to_list(200)
+    return rows
+
+
+@api.post("/bookings/complete")
+async def complete_booking(payload: CompleteBookingIn, user: dict = Depends(get_current_user)):
+    # Allow self-complete for MVP demo (in real life this would be admin-only)
+    booking = await db.bookings.find_one({"booking_id": payload.booking_id}, {"_id": 0})
+    if not booking:
+        raise HTTPException(404, "Booking not found")
+    if booking["user_id"] != user["user_id"] and user.get("role") != "admin":
+        raise HTTPException(403, "Forbidden")
+    if booking.get("status") == "completed":
+        return {"ok": True, "already": True}
+    tour = await db.tours.find_one({"tour_id": booking["tour_id"]}, {"_id": 0})
+    if not tour:
+        raise HTTPException(404, "Tour not found")
+
+    target_user = await db.users.find_one({"user_id": booking["user_id"]}, {"_id": 0})
+    new_xp = target_user.get("xp", 0) + tour.get("xp_reward", 50)
+    regions = set(target_user.get("regions_unlocked", []))
+    regions.add(tour["region"])
+    # Unlock additional regions if XP threshold passed
+    all_regions = await db.regions.find({}, {"_id": 0}).to_list(50)
+    for r in all_regions:
+        if new_xp >= r.get("unlock_xp", 0):
+            regions.add(r["region_id"])
+    cards = set(target_user.get("cards", []))
+    if tour.get("card_id"):
+        cards.add(tour["card_id"])
+    badges = set(target_user.get("badges", []))
+    if tour.get("badge_id"):
+        badges.add(tour["badge_id"])
+
+    await db.users.update_one(
+        {"user_id": booking["user_id"]},
+        {"$set": {
+            "xp": new_xp,
+            "level": level_from_xp(new_xp),
+            "regions_unlocked": list(regions),
+            "cards": list(cards),
+            "badges": list(badges),
+        }},
+    )
+    await db.bookings.update_one(
+        {"booking_id": payload.booking_id},
+        {"$set": {"status": "completed", "completed_at": datetime.now(timezone.utc).isoformat()}},
+    )
+
+    # Issue rewards if XP threshold reached and not already granted
+    templates = await db.reward_templates.find({}, {"_id": 0}).to_list(50)
+    granted = []
+    existing_rewards = await db.user_rewards.find({"user_id": booking["user_id"]}, {"_id": 0}).to_list(100)
+    existing_template_ids = {r["template_id"] for r in existing_rewards}
+    for tpl in templates:
+        if new_xp >= tpl["min_xp"] and tpl["reward_id"] not in existing_template_ids:
+            code = f"{tpl['code_prefix']}-{uuid.uuid4().hex[:6].upper()}"
+            r_doc = {
+                "user_reward_id": f"ur_{uuid.uuid4().hex[:10]}",
+                "user_id": booking["user_id"],
+                "template_id": tpl["reward_id"],
+                "type": tpl["type"],
+                "title": tpl["title"],
+                "description": tpl["description"],
+                "partner": tpl["partner"],
+                "code": code,
+                "redeemed": False,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            }
+            await db.user_rewards.insert_one(r_doc)
+            r_doc.pop("_id", None)
+            granted.append(r_doc)
+
+    return {
+        "ok": True,
+        "xp_gained": tour.get("xp_reward", 50),
+        "new_xp": new_xp,
+        "new_level": level_from_xp(new_xp),
+        "card_unlocked": tour.get("card_id"),
+        "badge_unlocked": tour.get("badge_id"),
+        "rewards_granted": granted,
+    }
+
+
+# ---------- Player content ----------
+@api.get("/me/profile")
+async def my_profile(user: dict = Depends(get_current_user)):
+    doc = await db.users.find_one({"user_id": user["user_id"]}, {"_id": 0, "password_hash": 0})
+    bookings_count = await db.bookings.count_documents({"user_id": user["user_id"]})
+    return {**public_user(doc), "regions_unlocked": doc.get("regions_unlocked", []), "cards": doc.get("cards", []), "badges": doc.get("badges", []), "bookings_count": bookings_count}
+
+
+@api.get("/me/rewards")
+async def my_rewards(user: dict = Depends(get_current_user)):
+    rows = await db.user_rewards.find({"user_id": user["user_id"]}, {"_id": 0}).sort("created_at", -1).to_list(200)
+    return rows
+
+
+@api.post("/me/rewards/{user_reward_id}/redeem")
+async def redeem_reward(user_reward_id: str, user: dict = Depends(get_current_user)):
+    r = await db.user_rewards.find_one({"user_reward_id": user_reward_id, "user_id": user["user_id"]}, {"_id": 0})
+    if not r:
+        raise HTTPException(404, "Reward not found")
+    await db.user_rewards.update_one({"user_reward_id": user_reward_id}, {"$set": {"redeemed": True, "redeemed_at": datetime.now(timezone.utc).isoformat()}})
+    return {"ok": True}
+
+
+@api.get("/leaderboard")
+async def leaderboard():
+    rows = await db.users.find({"role": {"$ne": "admin"}}, {"_id": 0, "password_hash": 0}).sort("xp", -1).limit(20).to_list(20)
+    return [{"user_id": u["user_id"], "name": u.get("name", "Explorer"), "xp": u.get("xp", 0), "level": u.get("level", 1), "picture": u.get("picture")} for u in rows]
+
+
+# ---------- AI Companion ----------
+@api.post("/chat")
+async def chat(payload: ChatIn, user: dict = Depends(get_current_user)):
+    if not EMERGENT_LLM_KEY:
+        raise HTTPException(500, "AI is not configured")
+    session_id = payload.session_id or f"chat_{user['user_id']}"
+    system = (
+        "You are 'Ti Dodo', the friendly AI travel companion for An Deor — a Mauritius-based "
+        "outdoor & cultural travel marketplace. Speak warmly, sprinkle the occasional Creole "
+        "word (e.g. 'mo nepli', 'bizin') with translation in parentheses. Give concrete, local "
+        "Mauritius tips: hidden beaches, Sega traditions, Creole food, hiking tips, sea "
+        f"conditions, etiquette. The player's name is {user.get('name', 'Explorer')}, currently "
+        f"level {user.get('level', 1)} with {user.get('xp', 0)} XP. Suggest An Deor tours when "
+        "relevant: 'Blue Bay Snorkel Safari', 'Le Pouce Sunrise Hike', 'Creole Table Cooking Class', "
+        "'Le Morne Kite Session', 'Sega Night by the Sea'. Keep answers under 160 words."
+    )
+
+    history = await db.chat_messages.find({"session_id": session_id}, {"_id": 0}).sort("ts", 1).to_list(50)
+
+    chat_client = LlmChat(
+        api_key=EMERGENT_LLM_KEY,
+        session_id=session_id,
+        system_message=system,
+    ).with_model("anthropic", "claude-sonnet-4-5-20250929")
+
+    # Replay history into the chat
+    for m in history:
+        if m["role"] == "user":
+            try:
+                await chat_client.send_message(UserMessage(text=m["content"]))
+            except Exception:
+                pass
+
+    try:
+        reply = await chat_client.send_message(UserMessage(text=payload.message))
+    except Exception as e:
+        logger.exception("LLM error")
+        raise HTTPException(502, f"AI error: {e}")
+
+    now = datetime.now(timezone.utc).isoformat()
+    await db.chat_messages.insert_many([
+        {"session_id": session_id, "user_id": user["user_id"], "role": "user", "content": payload.message, "ts": now},
+        {"session_id": session_id, "user_id": user["user_id"], "role": "assistant", "content": reply, "ts": now},
+    ])
+    return {"reply": reply, "session_id": session_id}
+
+
+@api.get("/chat/history")
+async def chat_history(user: dict = Depends(get_current_user)):
+    session_id = f"chat_{user['user_id']}"
+    rows = await db.chat_messages.find({"session_id": session_id}, {"_id": 0}).sort("ts", 1).to_list(200)
+    return rows
+
+
+# ---------- Admin ----------
+@api.get("/admin/bookings")
+async def admin_bookings(_: dict = Depends(require_admin)):
+    rows = await db.bookings.find({}, {"_id": 0}).sort("created_at", -1).to_list(500)
+    return rows
+
+
+@api.get("/admin/users")
+async def admin_users(_: dict = Depends(require_admin)):
+    rows = await db.users.find({}, {"_id": 0, "password_hash": 0}).sort("xp", -1).to_list(500)
+    return rows
+
+
+# ---------- Root ----------
+@api.get("/")
 async def root():
-    return {"message": "Hello World"}
+    return {"app": "An Deor Quest", "status": "ok"}
 
-@api_router.post("/status", response_model=StatusCheck)
-async def create_status_check(input: StatusCheckCreate):
-    status_dict = input.model_dump()
-    status_obj = StatusCheck(**status_dict)
-    
-    # Convert to dict and serialize datetime to ISO string for MongoDB
-    doc = status_obj.model_dump()
-    doc['timestamp'] = doc['timestamp'].isoformat()
-    
-    _ = await db.status_checks.insert_one(doc)
-    return status_obj
 
-@api_router.get("/status", response_model=List[StatusCheck])
-async def get_status_checks():
-    # Exclude MongoDB's _id field from the query results
-    status_checks = await db.status_checks.find({}, {"_id": 0}).to_list(1000)
-    
-    # Convert ISO string timestamps back to datetime objects
-    for check in status_checks:
-        if isinstance(check['timestamp'], str):
-            check['timestamp'] = datetime.fromisoformat(check['timestamp'])
-    
-    return status_checks
-
-# Include the router in the main app
-app.include_router(api_router)
+app.include_router(api)
 
 app.add_middleware(
     CORSMiddleware,
+    allow_origin_regex=".*",
     allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
-
-@app.on_event("shutdown")
-async def shutdown_db_client():
-    client.close()

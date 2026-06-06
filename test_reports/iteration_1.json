@@ -1,0 +1,46 @@
+{
+  "summary": "End-to-end backend (27 pytest cases, 100% pass) + frontend (Playwright) testing for An Deor Quest MVP. All critical flows pass: register/login (JWT + httpOnly cookies), dashboard, tours marketplace, booking, quest completion (XP / cards / badges / regions / rewards), rewards page + redeem, badges/collection, leaderboard (admin excluded), AI Companion 'Ti Dodo' (Claude Sonnet 4.5 via emergentintegrations replied in ~8s with Mauritian Creole flavor), chat history persistence, admin panel with award-booking flow, ProtectedRoute redirect, and logout. Admin seeding (admin@andeor.mu) works on startup. No blocking issues found.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/chat", "issue": "Replays full prior history into LlmChat on every request (each previous user msg re-sent). Works but is O(n) latency growth and burns tokens. Consider passing history as context or capping replay window."},
+      {"endpoint": "/api/bookings/complete", "issue": "Allows self-completion (documented MVP shortcut). Real product needs guide check-in / admin-only."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Landing/Login background image", "issues": ["Mauritius hero image is appropriate; no contrast problems found."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_andeor_api.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "Optional: optimize /api/chat to avoid re-sending full history each call (currently each previous user message is replayed through LlmChat -> increasing latency and cost).",
+    "Optional: tighten /api/bookings/complete to admin-only (current self-complete is documented MVP behavior).",
+    "Optional: add data-testid to header avatar/menu trigger (menu-logout is fine; avatar trigger relies on aria-haspopup)."
+  ],
+  "critical_code_review_comments": [
+    "server.py is 622 lines - approaching split threshold; consider modularizing (auth, catalog, bookings, rewards, chat, admin) once features grow.",
+    "JWT_SECRET is read at import time via os.environ[...] - correct (load_dotenv called first). Good.",
+    "Mongo _id correctly excluded via projection {_id:0} everywhere.",
+    "bcrypt + httpOnly secure samesite=none cookies match auth playbook.",
+    "CORS uses allow_origin_regex='.*' with allow_credentials=True - works in browsers because regex is non-* (acceptable for preview env).",
+    "seed_admin is idempotent and updates password hash if .env value changed - good.",
+    "No rate-limiting / brute-force lockout on /api/auth/login (playbook mentions 5-fail lockout). Not blocking for MVP but worth adding."
+  ],
+  "updated_files": [
+    "/app/backend/tests/__init__.py",
+    "/app/backend/tests/test_andeor_api.py"
+  ],
+  "success_rate": {"backend": "100% (27/27)", "frontend": "100% of tested flows"},
+  "test_credentials": "Admin: admin@andeor.mu / AnDeor2026! (seeded). Test players created dynamically via /api/auth/register with @example.com TLD (note: pydantic EmailStr rejects @*.test and other reserved TLDs).",
+  "seed_data_creation": "Two TEST players registered via UI (ui_player_*@example.com, ui2_player_*@example.com) plus session-scoped pytest player (test_player_*@example.com). Regions, tours, quests, reward templates auto-seeded by backend startup.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend pytest suite at /app/backend/tests/test_andeor_api.py - run with: pytest /app/backend/tests/test_andeor_api.py -v. Uses REACT_APP_BACKEND_URL from frontend/.env. IMPORTANT: pydantic EmailStr rejects reserved TLDs (.test, .example, .localhost) - use @example.com for test emails. Chat test takes ~5-15s. All admin-complete buttons disappear once status=completed (button is conditional). Frontend Companion uses chat-msg-{i} testid (sequential), not chat-msg-assistant.",
+  "rca_of_issues": "Initial test failures were in the TEST script itself (using @andeor.test which pydantic EmailStr rejects with 422). Fixed by switching to @example.com. No backend or frontend bugs found."
+}
