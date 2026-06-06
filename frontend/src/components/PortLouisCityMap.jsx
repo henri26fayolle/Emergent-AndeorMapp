@@ -1,19 +1,16 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { api, formatErr } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import {
-  ChevronLeft, MapPin, BookOpen, Utensils, Landmark, Church, Castle, Trophy, Sparkles, ChevronRight, Plus, Minus, RotateCcw, ChefHat,
+  ChevronLeft, MapPin, BookOpen, Utensils, Landmark, Church, Castle, Trophy, Sparkles, Plus, Minus, RotateCcw, ChefHat,
 } from "lucide-react";
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
-import { toast } from "sonner";
 import { playOpenScene, playSelect, playClick } from "@/lib/sound";
+import VenueModal from "@/components/VenueModal";
+import AvatarHud from "@/components/AvatarHud";
 
 const PORT_LOUIS_MAP = "/port_louis_map.png";
 
-// Icon per tour_id (fallback to MapPin)
 const TOUR_ICON = {
   "t-pl-aapravasi-ghat": Landmark,
   "t-pl-blue-penny": BookOpen,
@@ -24,10 +21,9 @@ const TOUR_ICON = {
   "t-creole-table": ChefHat,
 };
 
-export default function PortLouisCityMap({ open, onClose, tours, focusedQuest, focusedTourIds }) {
+export default function PortLouisCityMap({ open, onClose, tours, focusedQuest, focusedTourIds, profile }) {
   const { refresh } = useAuth();
-  const [confirm, setConfirm] = useState(null);
-  const [busy, setBusy] = useState(false);
+  const [openTourId, setOpenTourId] = useState(null);
 
   useEffect(() => {
     if (!open) return;
@@ -38,22 +34,6 @@ export default function PortLouisCityMap({ open, onClose, tours, focusedQuest, f
   }, [open]);
 
   const cityTours = tours.filter((t) => t.subregion === "port-louis");
-
-  const book = async () => {
-    if (!confirm) return;
-    setBusy(true);
-    try {
-      await api.post("/bookings", { tour_id: confirm.tour_id });
-      playSelect();
-      toast.success(`Quest accepted: "${confirm.name}".`);
-      setConfirm(null);
-      await refresh();
-    } catch (e) {
-      toast.error(formatErr(e.response?.data?.detail) || e.message);
-    } finally {
-      setBusy(false);
-    }
-  };
 
   if (!open) return null;
   const themeHex = focusedQuest?.theme_hex || "#E8B241";
@@ -105,7 +85,7 @@ export default function PortLouisCityMap({ open, onClose, tours, focusedQuest, f
                   return (
                     <motion.button
                       key={t.tour_id}
-                      onClick={(e) => { e.stopPropagation(); playSelect(); setConfirm(t); }}
+                      onClick={(e) => { e.stopPropagation(); playSelect(); setOpenTourId(t.tour_id); }}
                       initial={{ opacity: 0, scale: 0.5, y: -8 }}
                       animate={{ opacity: 1, scale: 1, y: 0 }}
                       transition={{ delay: 0.3 + i * 0.08, duration: 0.4, ease: "backOut" }}
@@ -216,28 +196,22 @@ export default function PortLouisCityMap({ open, onClose, tours, focusedQuest, f
           )}
         </TransformWrapper>
 
-        {/* Booking confirm */}
-        <Dialog open={!!confirm} onOpenChange={(o) => !o && setConfirm(null)}>
-          <DialogContent data-testid="pl-book-dialog" className="rounded-3xl max-w-md">
-            {confirm && (
-              <>
-                <DialogHeader>
-                  <DialogTitle className="font-display text-2xl">Accept this quest?</DialogTitle>
-                  <DialogDescription className="text-ink-700">
-                    {confirm.name} · €{confirm.price} per adventurer · +{confirm.xp_reward} XP
-                  </DialogDescription>
-                </DialogHeader>
-                <p className="text-sm text-ink-700 italic">{confirm.description}</p>
-                <DialogFooter className="gap-2">
-                  <Button variant="outline" onClick={() => setConfirm(null)} className="rounded-full">Cancel</Button>
-                  <Button onClick={book} disabled={busy} data-testid="pl-book-confirm" className="rounded-full bg-jungle-700 hover:bg-jungle-600 text-sand-100">
-                    <ChevronRight className="w-4 h-4 mr-1" /> {busy ? "Sealing…" : "Accept quest"}
-                  </Button>
-                </DialogFooter>
-              </>
-            )}
-          </DialogContent>
-        </Dialog>
+        {/* Floating Avatar HUD — same UX as world map but scoped to the city's venues */}
+        <AvatarHud
+          profile={profile}
+          scope="port-louis"
+          tours={cityTours}
+        />
+
+        {/* Rich venue modal — replaces the simple "Accept this quest?" dialog */}
+        <VenueModal
+          open={!!openTourId}
+          tourId={openTourId}
+          focusedQuest={focusedQuest}
+          isFocused={openTourId ? focusedTourIds?.has(openTourId) : false}
+          onClose={() => setOpenTourId(null)}
+          onBooked={() => refresh && refresh()}
+        />
 
         <style>{`
           @keyframes focusedPulse { 0%,100% { opacity: 0.55; transform: scale(1); } 50% { opacity: 1; transform: scale(1.2); } }

@@ -1,19 +1,22 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { BookOpen, Headphones, Map as MapIcon, ScrollText, Mountain, Wind, Waves, Landmark, Anchor, User as UserIcon } from "lucide-react";
+import {
+  BookOpen, Headphones, Map as MapIcon, ScrollText, Mountain, Wind, Waves,
+  Landmark, Anchor, User as UserIcon, Church, Castle, Trophy, Utensils, ChefHat, MapPin,
+} from "lucide-react";
 import RegionCodex from "@/components/RegionCodex";
+import TourCodex from "@/components/TourCodex";
 import AvatarPickerDialog from "@/components/AvatarPickerDialog";
 import { findAvatar } from "@/lib/avatars";
 import { playClick, playSelect } from "@/lib/sound";
 
-// Radial action definitions (4 items + 1 avatar swap)
 const ACTIONS = [
   { id: "listen", label: "Listen", icon: Headphones, tab: "listen" },
   { id: "read",   label: "Read",   icon: BookOpen,   tab: "read" },
   { id: "gpx",    label: "Tracks", icon: MapIcon,    tab: "gpx" },
   { id: "lore",   label: "Lore",   icon: ScrollText, tab: "read" },
-  { id: "swap",   label: "Change", icon: UserIcon,   tab: null }, // opens avatar picker
+  { id: "swap",   label: "Change", icon: UserIcon,   tab: null },
 ];
 
 const REGION_ICON = {
@@ -24,11 +27,37 @@ const REGION_ICON = {
   "central-culture": Landmark,
 };
 
-export default function AvatarHud({ profile, regions = [] }) {
+const TOUR_ICON = {
+  "t-pl-aapravasi-ghat": Landmark,
+  "t-pl-blue-penny":     BookOpen,
+  "t-pl-central-market": Utensils,
+  "t-pl-cathedral":      Church,
+  "t-pl-citadelle":      Castle,
+  "t-pl-champ-de-mars":  Trophy,
+  "t-creole-table":      ChefHat,
+};
+
+/**
+ * Avatar HUD with radial codex actions.
+ * Props:
+ *  - profile  — current user
+ *  - regions  — array of all regions (used when scope === "regions")
+ *  - scope    — "regions" (default) or "port-louis" for the city sub-map context
+ *  - tours    — array of tours visible in the current scope (used when scope !== "regions")
+ */
+export default function AvatarHud({ profile, regions = [], scope = "regions", tours = [] }) {
   const [fanOpen, setFanOpen] = useState(false);
   const [drawerTab, setDrawerTab] = useState(null);
   const [avatarOpen, setAvatarOpen] = useState(false);
-  const [region, setRegion] = useState("north-coast");
+  const [pickedRegion, setPickedRegion] = useState("north-coast");
+  const [pickedTour, setPickedTour] = useState(null);
+
+  // When scope changes, reset the picked item
+  useEffect(() => {
+    if (scope !== "regions" && tours.length > 0) {
+      setPickedTour(tours[0].tour_id);
+    }
+  }, [scope, tours]);
 
   // Close fan on outside click
   useEffect(() => {
@@ -50,24 +79,23 @@ export default function AvatarHud({ profile, regions = [] }) {
   const xpInLevel = xp % 100;
   const xpToNext = 100 - xpInLevel;
 
-  // Radial fan geometry — quarter-arc hugging the avatar circle, with breathing room.
-  // The avatar bubble is 80px (40 radius). We place icons along an arc at r=130 from the centre,
-  // evenly spread from -90° (straight up) to 0° (straight right).
-  // 5 actions × 22.5° step = 90° sweep.
   const fanRadius = 138;
   const startAngle = -90;
   const endAngle = 0;
   const step = (endAngle - startAngle) / (ACTIONS.length - 1);
 
+  // Choose the z-index: in port-louis scope we sit ABOVE the city overlay
+  const wrapperZ = scope === "regions" ? "z-40" : "z-[80]";
+
   return (
     <>
       <div
         data-hud="avatar"
-        className="fixed bottom-12 left-12 z-40 select-none"
+        className={`fixed bottom-12 left-12 ${wrapperZ} select-none`}
         onMouseEnter={() => setFanOpen(true)}
         onMouseLeave={() => setFanOpen(false)}
       >
-        {/* Radial action ring — quarter-arc hugging the avatar */}
+        {/* Radial action ring */}
         <AnimatePresence>
           {fanOpen && ACTIONS.map((a, i) => {
             const Icon = a.icon;
@@ -117,24 +145,16 @@ export default function AvatarHud({ profile, regions = [] }) {
           aria-label="Open codex"
         >
           {avatar.image ? (
-            <img
-              src={avatar.image}
-              alt={avatar.name || "Avatar"}
-              className="absolute inset-0 w-full h-full object-cover"
-              draggable={false}
-            />
+            <img src={avatar.image} alt={avatar.name || "Avatar"} className="absolute inset-0 w-full h-full object-cover" draggable={false} />
           ) : (
             <AvatarIcon className="w-9 h-9" />
           )}
-          {/* Soft inner rim */}
           <span aria-hidden className="absolute inset-0 rounded-full pointer-events-none" style={{ boxShadow: "inset 0 0 18px rgba(232,178,65,0.45)" }} />
-          {/* Level badge */}
           <span className="absolute -bottom-1 -right-1 bg-sun-500 text-ink-900 rounded-full text-[11px] font-bold w-7 h-7 flex items-center justify-center shadow-clay border-[3px] border-sand-100" data-testid="avatar-hud-level">
             {level}
           </span>
         </motion.button>
 
-        {/* Name + XP card sitting under the avatar */}
         <div className="mt-3 w-48 rounded-2xl bg-jungle-700 text-sand-100 px-3 py-2 shadow-clay pointer-events-none">
           <div className="flex items-center justify-between gap-2">
             <span className="font-display text-sm italic truncate" data-testid="avatar-hud-name">
@@ -142,7 +162,6 @@ export default function AvatarHud({ profile, regions = [] }) {
             </span>
             <span className="text-[9px] tracking-[0.25em] uppercase font-bold opacity-80 shrink-0">Lv {level}</span>
           </div>
-          {/* XP bar */}
           <div className="mt-1.5 h-1.5 rounded-full bg-sand-100/15 overflow-hidden relative" data-testid="avatar-hud-xp">
             <motion.div
               initial={false}
@@ -170,41 +189,70 @@ export default function AvatarHud({ profile, regions = [] }) {
               <BookOpen className="w-5 h-5 text-sunset-500" /> Adventurer's Codex
             </SheetTitle>
             <SheetDescription className="text-ink-700 text-sm">
-              Listen, read or download the spirit of each region. Free for all explorers.
+              {scope === "regions"
+                ? "Listen, read or download the spirit of each region. Free for all explorers."
+                : "Port Louis venues — listen to a sneak peek or read the full lore of each."}
             </SheetDescription>
           </SheetHeader>
 
           <div className="px-6 pb-3">
-            <div className="text-[10px] tracking-[0.3em] uppercase text-ink-700 font-bold mb-2">Choose a region</div>
+            <div className="text-[10px] tracking-[0.3em] uppercase text-ink-700 font-bold mb-2">
+              {scope === "regions" ? "Choose a region" : "Choose a venue"}
+            </div>
             <div className="flex flex-wrap gap-2">
-              {regions.map((r) => {
-                const Icon = REGION_ICON[r.region_id] || BookOpen;
-                const active = region === r.region_id;
-                return (
-                  <button
-                    key={r.region_id}
-                    onClick={() => { playSelect(); setRegion(r.region_id); }}
-                    data-testid={`codex-region-${r.region_id}`}
-                    className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold tracking-[0.15em] uppercase border-2 transition-colors ${
-                      active
-                        ? "bg-jungle-700 text-sand-100 border-jungle-700 shadow-clay"
-                        : "bg-white text-ink-900 border-ink-900/15 hover:bg-sand-200"
-                    }`}
-                  >
-                    <Icon className="w-3 h-3" /> {r.name}
-                  </button>
-                );
-              })}
+              {scope === "regions"
+                ? regions.map((r) => {
+                    const Icon = REGION_ICON[r.region_id] || BookOpen;
+                    const active = pickedRegion === r.region_id;
+                    return (
+                      <button
+                        key={r.region_id}
+                        onClick={() => { playSelect(); setPickedRegion(r.region_id); }}
+                        data-testid={`codex-region-${r.region_id}`}
+                        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold tracking-[0.15em] uppercase border-2 transition-colors ${
+                          active
+                            ? "bg-jungle-700 text-sand-100 border-jungle-700 shadow-clay"
+                            : "bg-white text-ink-900 border-ink-900/15 hover:bg-sand-200"
+                        }`}
+                      >
+                        <Icon className="w-3 h-3" /> {r.name}
+                      </button>
+                    );
+                  })
+                : tours.map((t) => {
+                    const Icon = TOUR_ICON[t.tour_id] || MapPin;
+                    const active = pickedTour === t.tour_id;
+                    const short = (t.name || "").replace("Port Louis ", "").replace("(UNESCO)", "").trim();
+                    return (
+                      <button
+                        key={t.tour_id}
+                        onClick={() => { playSelect(); setPickedTour(t.tour_id); }}
+                        data-testid={`codex-tour-${t.tour_id}`}
+                        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold tracking-[0.15em] uppercase border-2 transition-colors ${
+                          active
+                            ? "bg-jungle-700 text-sand-100 border-jungle-700 shadow-clay"
+                            : "bg-white text-ink-900 border-ink-900/15 hover:bg-sand-200"
+                        }`}
+                      >
+                        <Icon className="w-3 h-3" /> {short}
+                      </button>
+                    );
+                  })}
             </div>
           </div>
 
           <div className="px-6 pb-12">
-            <RegionCodex key={`${region}-${drawerTab}`} regionId={region} initialTab={drawerTab || "listen"} />
+            {scope === "regions" ? (
+              <RegionCodex key={`${pickedRegion}-${drawerTab}`} regionId={pickedRegion} initialTab={drawerTab || "listen"} />
+            ) : (
+              pickedTour && (
+                <TourCodex key={`${pickedTour}-${drawerTab}`} tourId={pickedTour} initialTab={drawerTab || "listen"} />
+              )
+            )}
           </div>
         </SheetContent>
       </Sheet>
 
-      {/* Avatar picker (opened from the radial 'Change' action) */}
       <AvatarPickerDialog open={avatarOpen} onOpenChange={setAvatarOpen} />
     </>
   );

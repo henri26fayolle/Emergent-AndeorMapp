@@ -106,8 +106,114 @@ REGION_LORE = {
 }
 
 
+# ---------- Per-tour lore (richer venue stories, e.g. each Port Louis museum) ----------
+TOUR_LORE = {
+    "t-pl-aapravasi-ghat": {
+        "lore_title": "Aapravasi Ghat — the Immigration Depot",
+        "lore_summary": "The pier where 460,000 lives began their second chapter.",
+        "lore_text": (
+            "Aapravasi Ghat — 'the place of arrival' in Hindi — is the stone pier where, between 1834 and 1920, "
+            "460,000 indentured labourers from India, China, Madagascar and East Africa stepped off ships onto a "
+            "new world. Sixteen steps lead from the water to the depot — climb them and you walk the exact path a "
+            "great-great-grandparent of two-thirds of Mauritians took with their entire life in a wooden trunk. "
+            "Declared UNESCO World Heritage in 2006, the site preserves the dormitories, the hospital block and "
+            "the registration desk where each new arrival was photographed, numbered and given a date with the cane "
+            "fields. A quiet, powerful place — bring your slow self."
+        ),
+    },
+    "t-pl-blue-penny": {
+        "lore_title": "Blue Penny Museum — the World's Rarest Stamp",
+        "lore_summary": "A 1847 typo became one of the most valuable objects on Earth.",
+        "lore_text": (
+            "In 1847, a Mauritian engraver named Joseph Barnard pressed the wrong words onto a copper plate: "
+            "'POST OFFICE' instead of 'POST PAID'. The mistake produced 500 stamps — half red 'One Penny', half blue 'Two Pence' — "
+            "and within weeks, the corrected plate replaced them. Today, only 27 of those stamps survive. The Blue Penny Museum "
+            "owns two of them, displayed in a dark vault that opens for just ten minutes every hour to protect the pigment "
+            "from light damage. Around them: 200 years of Mauritian numismatics, La Bourdonnais' maps, the original sculpture "
+            "of Paul & Virginie, and the most expensive postcard ever sent — a Blue Penny on cover that sold for $4 million. "
+            "An hour here is a thousand small love letters to detail."
+        ),
+    },
+    "t-pl-central-market": {
+        "lore_title": "Central Market — Four Religions at One Counter",
+        "lore_summary": "Dholl puri, alouda, gateau piment and a Bhojpuri-Creole-Tamil-French choir.",
+        "lore_text": (
+            "Port Louis Central Market has been alive since 1839 — a steel-and-tile cathedral where four religions, "
+            "seven languages and every spice known to humans share a counter. Arrive at dawn. The fish stalls open first; "
+            "by 7am the dholl puri queue snakes onto the pavement, and by 9 the alouda women (a basilic-seed, milk-and-rose "
+            "drink that tastes like Mauritius in a glass) are pouring as fast as they can stir. Our guide knows which "
+            "auntie has the best biryani, which oncle still makes gateau piment by hand and which spice corner is run by "
+            "the only fourth-generation Tamil family in the market. Come hungry. Leave converted."
+        ),
+    },
+    "t-pl-cathedral": {
+        "lore_title": "Saint Louis Cathedral — Bells over a Many-faithed City",
+        "lore_summary": "The seat of the diocese, rebuilt three times by storms and rebuilt again by faith.",
+        "lore_text": (
+            "Saint Louis Cathedral first opened in 1756 — and was promptly destroyed by a cyclone. Rebuilt. Destroyed again "
+            "in 1816. Rebuilt. Rebuilt one more time in 1932, in the lemon-yellow neo-classical façade you see today. From "
+            "its forecourt you can hear, at noon, the muezzin from the Jummah Mosque two blocks away, the temple drums of "
+            "the Mariamen Tamil temple six blocks east, and the cathedral's own bells ringing one of the oldest carillons in "
+            "the Indian Ocean. Step inside for ten minutes of cool shade and stained glass — and notice how the saints in "
+            "the windows have, after 90 years of Mauritian sun, faded into our own colour."
+        ),
+    },
+    "t-pl-citadelle": {
+        "lore_title": "The Citadelle (Fort Adelaide)",
+        "lore_summary": "The British fort that watches every ship that ever called on Port Louis.",
+        "lore_text": (
+            "Perched on the volcanic neck above Port Louis, Fort Adelaide was built between 1834 and 1840 — partly to defend "
+            "the harbour, partly to keep an eye on the just-freed slaves of the recently abolished plantations. It never fired "
+            "a shot in anger. Today its black-stone walls hold a 360° panorama unlike any other in Mauritius: the Champ de Mars "
+            "racetrack below, the cathedral spire, the harbour cranes, the cane-green Pieter Both peak inland, and on a clear "
+            "day, the very tip of Réunion 200km to the south-west. Come at sunset. Bring something to sip. The wind here has "
+            "been waiting to introduce itself."
+        ),
+    },
+    "t-pl-champ-de-mars": {
+        "lore_title": "Champ de Mars — Where the Empire Bets",
+        "lore_summary": "The oldest racecourse in the Southern Hemisphere (1812). Yes, older than Royal Ascot's modern stands.",
+        "lore_text": (
+            "On the 25th of June 1812, in front of governor Robert Farquhar and most of his garrison, a horse named Adelaïde "
+            "won the very first race ever run at Champ de Mars. Two centuries later, this oval is still the most beloved venue "
+            "in Mauritius — Saturday afternoons in winter (May to November), 20,000 people in panama hats, blazers and the "
+            "Mauritian national costume of barely-concealed excitement, betting in five languages on horses named after every "
+            "Mauritian dish ever invented. Our paddock tour walks you behind the scenes — meet a jockey, touch a thoroughbred, "
+            "and place a 100-rupee bet that may, just may, change your trip."
+        ),
+    },
+    "t-creole-table": {
+        "lore_title": "The Creole Table — A Family Recipe",
+        "lore_summary": "Cook rougaille saucisse, vindaye poisson and gateau piment with a Mauritian aunt.",
+        "lore_text": (
+            "Mauritian Creole cooking is, at heart, a peace treaty between five continents written in cumin, ginger and lime. "
+            "In a small kitchen in upper Port Louis, our cousin Marie will show you how to start a rougaille (the national stew) "
+            "by toasting masala seeds until they smell of dust and lemons; how to vindaye a king-fish by drowning it in mustard, "
+            "oil and turmeric until it tastes like the sea bargained with the sun. You'll fry your own gateau piment, learn the "
+            "rule about coriander (always at the end), and eat what you cook on a hand-painted tiled patio with a glass of "
+            "Phoenix beer. Two hours and three lifetimes of family secrets."
+        ),
+    },
+}
+
+
+async def seed_tour_lore(db):
+    """Idempotent: set lore on each tour if missing or empty."""
+    for tour_id, lore in TOUR_LORE.items():
+        existing = await db.tours.find_one({"tour_id": tour_id})
+        if not existing:
+            continue
+        needs_seed = (
+            not existing.get("lore_text")
+            or not existing.get("lore_title")
+            or not existing.get("lore_summary")
+        )
+        if needs_seed:
+            await db.tours.update_one({"tour_id": tour_id}, {"$set": lore})
+
+
 async def seed_lore(db):
-    """Idempotent: set lore fields on each region if missing or empty."""
+    """Idempotent: seed region lore + tour lore."""
     for region_id, lore in REGION_LORE.items():
         existing = await db.regions.find_one({"region_id": region_id})
         if not existing:
@@ -122,6 +228,7 @@ async def seed_lore(db):
                 {"region_id": region_id},
                 {"$set": lore},
             )
+    await seed_tour_lore(db)
 
 
 # ---------- Utilities ----------
@@ -131,6 +238,10 @@ def _safe(filename: str) -> str:
 
 def _audio_path(region_id: str) -> Path:
     return AUDIO_DIR / f"{_safe(region_id)}.mp3"
+
+
+def _tour_audio_path(tour_id: str) -> Path:
+    return AUDIO_DIR / f"tour__{_safe(tour_id)}.mp3"
 
 
 def _gpx_path(tour_id: str, filename: str) -> Path:
@@ -169,6 +280,41 @@ async def _ensure_audio(region: dict) -> str:
         logger.info("TTS audio generated for %s (%d bytes)", region_id, len(audio_bytes))
     except Exception as e:
         logger.exception("TTS generation failed")
+        raise HTTPException(502, f"Audio generation failed: {e}")
+
+    return rel_url
+
+
+async def _ensure_tour_audio(tour: dict) -> str:
+    """Generate (and cache) per-tour narration. Returns the relative URL."""
+    tour_id = tour["tour_id"]
+    target = _tour_audio_path(tour_id)
+    rel_url = f"/api/codex/tour-audio/{tour_id}"
+
+    if target.exists() and target.stat().st_size > 0:
+        return rel_url
+
+    if not EMERGENT_LLM_KEY:
+        raise HTTPException(503, "TTS not configured")
+
+    title = tour.get("lore_title", tour.get("name", "An Deor tour"))
+    summary = tour.get("lore_summary", "")
+    body = tour.get("lore_text", tour.get("description", ""))
+    script = f"{title}. {summary}  …  {body}"[:4000]
+
+    try:
+        tts = OpenAITextToSpeech(api_key=EMERGENT_LLM_KEY)
+        audio_bytes = await tts.generate_speech(
+            text=script,
+            model=TTS_MODEL,
+            voice=TTS_VOICE,
+            response_format="mp3",
+            speed=0.95,
+        )
+        target.write_bytes(audio_bytes)
+        logger.info("TTS audio generated for tour %s (%d bytes)", tour_id, len(audio_bytes))
+    except Exception as e:
+        logger.exception("TTS tour generation failed")
         raise HTTPException(502, f"Audio generation failed: {e}")
 
     return rel_url
@@ -225,6 +371,45 @@ def build_router(db, require_admin, get_current_user) -> APIRouter:
         target = _audio_path(region_id)
         return FileResponse(
             target,
+            media_type="audio/mpeg",
+            headers={"Cache-Control": "public, max-age=3600"},
+        )
+
+    @router.get("/tour/{tour_id}")
+    async def get_tour_codex(tour_id: str):
+        """Public: per-tour lore + audio URL + image — for venue modals in city sub-maps."""
+        tour = await db.tours.find_one({"tour_id": tour_id}, {"_id": 0, "guide_pin": 0})
+        if not tour:
+            raise HTTPException(404, "Tour not found")
+        has_lore = bool((tour.get("lore_text") or "").strip())
+        return {
+            "tour_id": tour_id,
+            "name": tour.get("name"),
+            "region": tour.get("region"),
+            "subregion": tour.get("subregion"),
+            "image": tour.get("image"),
+            "description": tour.get("description"),
+            "price": tour.get("price"),
+            "duration": tour.get("duration"),
+            "xp_reward": tour.get("xp_reward"),
+            "lore_title": tour.get("lore_title"),
+            "lore_summary": tour.get("lore_summary"),
+            "lore_text": tour.get("lore_text"),
+            "audio_url": f"/api/codex/tour-audio/{tour_id}" if has_lore else None,
+            "audio_ready": _tour_audio_path(tour_id).exists(),
+            "gpx_files": tour.get("gpx_files") or [],
+        }
+
+    @router.get("/tour-audio/{tour_id}")
+    async def stream_tour_audio(tour_id: str):
+        tour = await db.tours.find_one({"tour_id": tour_id}, {"_id": 0})
+        if not tour:
+            raise HTTPException(404, "Tour not found")
+        if not (tour.get("lore_text") or "").strip():
+            raise HTTPException(404, "No lore for this tour yet")
+        await _ensure_tour_audio(tour)
+        return FileResponse(
+            _tour_audio_path(tour_id),
             media_type="audio/mpeg",
             headers={"Cache-Control": "public, max-age=3600"},
         )

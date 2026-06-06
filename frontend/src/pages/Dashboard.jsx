@@ -200,6 +200,7 @@ export default function Dashboard() {
         tours={tours}
         focusedQuest={focused}
         focusedTourIds={new Set(focused?.tour_ids || [])}
+        profile={profile}
       />
 
       {/* Floating avatar — opens codex/audio/lore/GPX drawer */}

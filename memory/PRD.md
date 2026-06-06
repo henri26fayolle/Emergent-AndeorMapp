@@ -27,6 +27,14 @@
 - AI travel companion "Ti Dodo".
 - Admin panel for tour-complete awarding.
 
+## What's been implemented (2026-02 / iteration 12 — VENUE MODAL + CITY CODEX)
+- ✅ **Avatar HUD inside Port Louis sub-map** — same UX as world map but scoped to city venues (tour-level codex picker instead of region-level)
+- ✅ **Rich venue modal** replaces the simple "Accept this quest?" dialog: hero image, price/time/XP meta, italic teaser, audio sneak-peek player, "Read the full lore" expand button, "Accept the Quest" CTA
+- ✅ **Expand-into-wider modal** — clicking "Read the full lore" smoothly transitions the modal from 1-column to 2-column with a parchment-styled codex panel showing the drop-cap full written lore alongside the booking card
+- ✅ **Per-tour lore seeded** for all 7 Port Louis venues (Aapravasi, Blue Penny, Central Market, Cathedral, Citadelle, Champ de Mars, Creole Table) with rich 600-900 char stories
+- ✅ **Tour-level TTS endpoints** — `GET /api/codex/tour/{tour_id}` and `GET /api/codex/tour-audio/{tour_id}` (generate-on-demand, cached as MP3 on disk)
+- ✅ **TourCodex component** (used inside the Avatar HUD drawer when in city scope)
+
 ## What's been implemented (2026-02 / iteration 11 — CHARACTER AVATARS + HUD POLISH)
 - ✅ **5 character guide portraits** (Naïma · Akil · Léa · Sanjay · Marie) self-hosted at `/public/avatars/*.jpg`
 - ✅ Avatars now usable as **playable characters** (AvatarPickerDialog uses the JPGs with name + role + bio)
