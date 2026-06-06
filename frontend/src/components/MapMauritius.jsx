@@ -8,15 +8,15 @@ const MAP_IMG = "https://customer-assets.emergentagent.com/job_explore-earn-5/ar
 // x/y are percentages of the (square) map container.
 // `teaser` is the 1-line hover hint shown above the pin.
 const POSITIONS = {
-  "north-coast":     { x: 50, y: 22, name: "North Coast",  icon: Waves,    teaser: "Sega night · Naïma" },
-  "central-culture": { x: 49, y: 46, name: "Port Louis",   icon: Landmark, teaser: "Creole table · Marie" },
-  "black-river":     { x: 21, y: 62, name: "Black River",  icon: Mountain, teaser: "Le Pouce sunrise · Akil" },
-  "east-lagoons":    { x: 78, y: 60, name: "East Lagoons", icon: Anchor,   teaser: "Blue Bay snorkel · Sanjay" },
-  "south-wild":      { x: 24, y: 88, name: "Le Morne",     icon: Wind,     teaser: "Kite sessions · Léa" },
+  "north-coast":     { x: 46, y: 12, name: "North Coast",  icon: Waves,    teaser: "Sega night · Naïma" },
+  "central-culture": { x: 36, y: 30, name: "Port Louis",   icon: Landmark, teaser: "Creole table · Marie" },
+  "black-river":     { x: 22, y: 56, name: "Black River",  icon: Mountain, teaser: "Le Pouce sunrise · Akil" },
+  "east-lagoons":    { x: 74, y: 75, name: "East Lagoons", icon: Anchor,   teaser: "Blue Bay snorkel · Sanjay" },
+  "south-wild":      { x: 22, y: 78, name: "Le Morne",     icon: Wind,     teaser: "Kite sessions · Léa" },
 };
 
 // Waterfall position (matches the blue pool in the artwork)
-const FALLS = { x: 36, y: 56, w: 1.4, h: 5 };
+const FALLS = { x: 36, y: 54, w: 1.6, h: 5 };
 
 export default function MapMauritius({ regions = [], unlocked = new Set(), onRegionClick }) {
   return (
