@@ -27,6 +27,13 @@
 - AI travel companion "Ti Dodo".
 - Admin panel for tour-complete awarding.
 
+## What's been implemented (2026-02 / iteration 3)
+- ✅ **Framer-motion Prologue polish**: Ken Burns background crossfade, `AnimatePresence mode="wait"` between scenes, staggered avatar grid entrance, slide-in tutorial cards, animated progress bar
+- ✅ **One-click avatar swap from Header**: "Change explorer" dropdown item → `AvatarPickerDialog` (motion stagger) → `PATCH /api/me`, header icon updates live
+- ✅ **Guide PIN check-in flow**: new `POST /api/bookings/checkin` (case-insensitive PIN, 400/403/404 paths, idempotent), `POST /api/bookings/complete` locked to admin (re-labelled "Force-award"), new `GET /api/admin/tours` exposes PINs to admins only, public `/api/tours` strips `guide_pin`
+- ✅ Admin "Guide PINs" tab listing tour PINs with copy-to-clipboard (seeded: REEF42, RIDGE07, PIMENT9, WIND88, SEGA21)
+- ✅ Backend pytest **54/54 ✅** (16 new + 38 regression), full frontend e2e ✅
+
 ## What's been implemented (2026-02 / iteration 2)
 - ✅ Pokemon-style **Prologue** entry: 5 cinematic dialog beats with typewriter ("Ti Dodo" NPC), name input, 6 avatar starter explorers (Reef Diver, Ridge Hiker, Spice Hunter, Sega Dancer, Wind Rider, Heritage Scholar), inline register, and 4-beat "How to play" tutorial → enters the world map
 - ✅ Marketing Landing page **removed**; `/` now boots straight into the Prologue
