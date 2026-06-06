@@ -1,17 +1,19 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { BookOpen, Headphones, Map as MapIcon, ScrollText, X, Mountain, Wind, Waves, Landmark, Anchor } from "lucide-react";
+import { BookOpen, Headphones, Map as MapIcon, ScrollText, Mountain, Wind, Waves, Landmark, Anchor, User as UserIcon } from "lucide-react";
 import RegionCodex from "@/components/RegionCodex";
+import AvatarPickerDialog from "@/components/AvatarPickerDialog";
 import { findAvatar } from "@/lib/avatars";
 import { playClick, playSelect } from "@/lib/sound";
 
-// Radial action definitions — each opens the drawer pre-filtered to a tab
+// Radial action definitions (4 items + 1 avatar swap)
 const ACTIONS = [
   { id: "listen", label: "Listen", icon: Headphones, tab: "listen" },
   { id: "read",   label: "Read",   icon: BookOpen,   tab: "read" },
   { id: "gpx",    label: "Tracks", icon: MapIcon,    tab: "gpx" },
   { id: "lore",   label: "Lore",   icon: ScrollText, tab: "read" },
+  { id: "swap",   label: "Change", icon: UserIcon,   tab: null }, // opens avatar picker
 ];
 
 const REGION_ICON = {
@@ -24,7 +26,8 @@ const REGION_ICON = {
 
 export default function AvatarHud({ profile, regions = [] }) {
   const [fanOpen, setFanOpen] = useState(false);
-  const [drawerTab, setDrawerTab] = useState(null); // null = closed, otherwise "listen"|"read"|"gpx"
+  const [drawerTab, setDrawerTab] = useState(null);
+  const [avatarOpen, setAvatarOpen] = useState(false);
   const [region, setRegion] = useState("north-coast");
 
   // Close fan on outside click
@@ -42,25 +45,36 @@ export default function AvatarHud({ profile, regions = [] }) {
   const avatar = findAvatar(profile.avatar) || { name: "Explorer", icon: BookOpen, gradient: "from-jungle-600 to-jungle-700" };
   const AvatarIcon = avatar.icon;
 
+  const xp = profile.xp ?? 0;
+  const level = profile.level ?? 1;
+  const xpInLevel = xp % 100;
+  const xpToNext = 100 - xpInLevel;
+
+  // Radial fan geometry — quarter-arc hugging the avatar circle, with breathing room.
+  // The avatar bubble is 80px (40 radius). We place icons along an arc at r=130 from the centre,
+  // evenly spread from -90° (straight up) to 0° (straight right).
+  // 5 actions × 22.5° step = 90° sweep.
+  const fanRadius = 138;
+  const startAngle = -90;
+  const endAngle = 0;
+  const step = (endAngle - startAngle) / (ACTIONS.length - 1);
+
   return (
     <>
-      {/* Floating avatar — bottom-left */}
       <div
         data-hud="avatar"
-        className="fixed bottom-6 left-6 z-40 select-none"
+        className="fixed bottom-12 left-12 z-40 select-none"
         onMouseEnter={() => setFanOpen(true)}
         onMouseLeave={() => setFanOpen(false)}
       >
-        {/* Radial action ring */}
+        {/* Radial action ring — quarter-arc hugging the avatar */}
         <AnimatePresence>
           {fanOpen && ACTIONS.map((a, i) => {
             const Icon = a.icon;
-            // Fan upward & to the right, like a Pokemon Mystery Dungeon command wheel
-            const angle = -90 - i * 22;  // -90deg (up), -112, -134, -156
-            const r = 92;
+            const angle = startAngle + i * step;
             const rad = (angle * Math.PI) / 180;
-            const x = Math.cos(rad) * r;
-            const y = Math.sin(rad) * r;
+            const x = Math.cos(rad) * fanRadius;
+            const y = Math.sin(rad) * fanRadius;
             return (
               <motion.button
                 key={a.id}
@@ -68,22 +82,23 @@ export default function AvatarHud({ profile, regions = [] }) {
                 onClick={(e) => {
                   e.stopPropagation();
                   playSelect();
-                  setDrawerTab(a.tab);
+                  if (a.id === "swap") setAvatarOpen(true);
+                  else setDrawerTab(a.tab);
                   setFanOpen(false);
                 }}
                 initial={{ opacity: 0, x: 0, y: 0, scale: 0.4 }}
                 animate={{ opacity: 1, x, y, scale: 1 }}
                 exit={{ opacity: 0, x: 0, y: 0, scale: 0.4 }}
-                transition={{ delay: i * 0.035, duration: 0.28, ease: "backOut" }}
+                transition={{ delay: i * 0.04, duration: 0.32, ease: "backOut" }}
                 whileHover={{ scale: 1.15 }}
                 whileTap={{ scale: 0.92 }}
-                className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 group"
+                className="absolute left-10 top-10 -translate-x-1/2 -translate-y-1/2 group"
               >
                 <span className="flex flex-col items-center">
                   <span className="w-12 h-12 rounded-full bg-sand-100 text-jungle-700 flex items-center justify-center shadow-lift border-2 border-jungle-700">
                     <Icon className="w-5 h-5" />
                   </span>
-                  <span className="text-[9px] tracking-[0.25em] uppercase mt-1 font-bold bg-jungle-700 text-sand-100 rounded-full px-2 py-0.5 shadow-clay opacity-0 group-hover:opacity-100 transition-opacity">
+                  <span className="text-[9px] tracking-[0.25em] uppercase mt-1 font-bold bg-jungle-700 text-sand-100 rounded-full px-2 py-0.5 shadow-clay opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
                     {a.label}
                   </span>
                 </span>
@@ -95,21 +110,42 @@ export default function AvatarHud({ profile, regions = [] }) {
         {/* Avatar bubble */}
         <motion.button
           onClick={() => { playClick(); setFanOpen((v) => !v); }}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.94 }}
+          whileHover={{ scale: 1.04 }}
+          whileTap={{ scale: 0.95 }}
           data-testid="avatar-hud-bubble"
           className={`relative w-20 h-20 rounded-full bg-gradient-to-br ${avatar.gradient || "from-jungle-600 to-jungle-700"} ring-4 ring-sand-100 shadow-lift flex items-center justify-center overflow-hidden text-sand-100`}
+          aria-label="Open codex"
         >
           <AvatarIcon className="w-9 h-9" />
-          {/* Soft glowing rim while idle */}
-          <span aria-hidden className="absolute inset-0 rounded-full pointer-events-none" style={{ boxShadow: "inset 0 0 18px rgba(232,178,65,0.45)" }} />
-          {/* Pulse hint */}
-          <span aria-hidden className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-sun-500 ring-2 ring-sand-100 animate-pulse" />
+          {/* Soft inner rim */}
+          <span aria-hidden className="absolute inset-0 rounded-full pointer-events-none" style={{ boxShadow: "inset 0 0 18px rgba(232,178,65,0.4)" }} />
+          {/* Level badge */}
+          <span className="absolute -bottom-1 -right-1 bg-sun-500 text-ink-900 rounded-full text-[11px] font-bold w-7 h-7 flex items-center justify-center shadow-clay border-[3px] border-sand-100" data-testid="avatar-hud-level">
+            {level}
+          </span>
         </motion.button>
 
-        {/* Player tag */}
-        <div className="mt-2 text-center rounded-full bg-jungle-700 text-sand-100 px-3 py-1 text-[9px] tracking-[0.25em] uppercase font-bold whitespace-nowrap shadow-clay pointer-events-none">
-          {profile.name?.split(" ")[0] || "Explorer"} · Lv {profile.level || 1}
+        {/* Name + XP card sitting under the avatar */}
+        <div className="mt-3 w-48 rounded-2xl bg-jungle-700 text-sand-100 px-3 py-2 shadow-clay pointer-events-none">
+          <div className="flex items-center justify-between gap-2">
+            <span className="font-display text-sm italic truncate" data-testid="avatar-hud-name">
+              {profile.name?.split(" ")[0] || "Explorer"}
+            </span>
+            <span className="text-[9px] tracking-[0.25em] uppercase font-bold opacity-80 shrink-0">Lv {level}</span>
+          </div>
+          {/* XP bar */}
+          <div className="mt-1.5 h-1.5 rounded-full bg-sand-100/15 overflow-hidden relative" data-testid="avatar-hud-xp">
+            <motion.div
+              initial={false}
+              animate={{ width: `${xpInLevel}%` }}
+              transition={{ duration: 0.7, ease: "easeOut" }}
+              className="absolute inset-y-0 left-0 bg-gradient-to-r from-sun-500 to-sunset-500 rounded-full"
+            />
+          </div>
+          <div className="mt-1 flex justify-between text-[8.5px] tracking-[0.2em] uppercase font-bold opacity-75 tabular-nums">
+            <span>{xp} XP</span>
+            <span>{xpToNext} to Lv {level + 1}</span>
+          </div>
         </div>
       </div>
 
@@ -129,7 +165,6 @@ export default function AvatarHud({ profile, regions = [] }) {
             </SheetDescription>
           </SheetHeader>
 
-          {/* Region picker */}
           <div className="px-6 pb-3">
             <div className="text-[10px] tracking-[0.3em] uppercase text-ink-700 font-bold mb-2">Choose a region</div>
             <div className="flex flex-wrap gap-2">
@@ -155,11 +190,13 @@ export default function AvatarHud({ profile, regions = [] }) {
           </div>
 
           <div className="px-6 pb-12">
-            {/* Pass an initial tab hint via the key so it remounts when changing tabs */}
             <RegionCodex key={`${region}-${drawerTab}`} regionId={region} initialTab={drawerTab || "listen"} />
           </div>
         </SheetContent>
       </Sheet>
+
+      {/* Avatar picker (opened from the radial 'Change' action) */}
+      <AvatarPickerDialog open={avatarOpen} onOpenChange={setAvatarOpen} />
     </>
   );
 }
