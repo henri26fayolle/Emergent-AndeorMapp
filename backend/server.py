@@ -22,6 +22,8 @@ import httpx
 
 from emergentintegrations.llm.chat import LlmChat, UserMessage
 
+from codex import build_router as build_codex_router, seed_lore
+
 # ---------- MongoDB ----------
 mongo_url = os.environ["MONGO_URL"]
 client = AsyncIOMotorClient(mongo_url)
@@ -268,6 +270,7 @@ async def startup():
     await db.bookings.create_index("user_id")
     await seed_data()
     await seed_admin()
+    await seed_lore(db)
     logger.info("An Deor backend ready.")
 
 
@@ -675,6 +678,10 @@ async def root():
 
 
 app.include_router(api)
+
+# Codex sub-router (lore, audio narration, GPX uploads/downloads)
+api_codex = build_codex_router(db, require_admin, get_current_user)
+app.include_router(api_codex, prefix="/api")
 
 app.add_middleware(
     CORSMiddleware,

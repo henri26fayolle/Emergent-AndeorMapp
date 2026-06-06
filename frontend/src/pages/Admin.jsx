@@ -8,6 +8,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
 import { Copy, KeyRound } from "lucide-react";
+import AdminCodex from "@/components/AdminCodex";
+import AdminGpx from "@/components/AdminGpx";
 
 export default function Admin() {
   const [bookings, setBookings] = useState([]);
@@ -57,6 +59,8 @@ export default function Admin() {
           <TabsList className="rounded-full bg-sand-200 p-1" data-testid="admin-tabs">
             <TabsTrigger value="bookings" data-testid="admin-tab-bookings" className="rounded-full">Bookings</TabsTrigger>
             <TabsTrigger value="tours" data-testid="admin-tab-tours" className="rounded-full">Guide PINs</TabsTrigger>
+            <TabsTrigger value="codex" data-testid="admin-tab-codex" className="rounded-full">Codex</TabsTrigger>
+            <TabsTrigger value="gpx" data-testid="admin-tab-gpx" className="rounded-full">GPX Tracks</TabsTrigger>
             <TabsTrigger value="users" data-testid="admin-tab-users" className="rounded-full">Players</TabsTrigger>
           </TabsList>
 
@@ -132,6 +136,14 @@ export default function Admin() {
                 </TableBody>
               </Table>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="codex">
+            <AdminCodex />
+          </TabsContent>
+
+          <TabsContent value="gpx">
+            <AdminGpx />
           </TabsContent>
 
           <TabsContent value="users">

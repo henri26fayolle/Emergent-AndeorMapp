@@ -4,6 +4,7 @@ import { api, formatErr } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import QuestScroll from "@/components/QuestScroll";
 import NpcPortrait from "@/components/NpcPortrait";
+import RegionCodex from "@/components/RegionCodex";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { ChevronLeft, Lock, ChevronRight, MapPin } from "lucide-react";
@@ -88,19 +89,23 @@ export default function RegionScene({ region, tours, unlocked, onClose }) {
       {/* Center: locked or quest scrolls */}
       <div className="relative h-full flex flex-col px-5 lg:px-10 pt-24 pb-44 overflow-y-auto">
         {!unlocked ? (
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="max-w-md mx-auto my-auto text-center text-sand-100"
-            data-testid="region-locked"
-          >
-            <div className="w-24 h-24 mx-auto rounded-full bg-sand-100/15 border-2 border-dashed border-sand-100/50 flex items-center justify-center mb-6">
-              <Lock className="w-10 h-10" />
-            </div>
-            <h3 className="font-display text-3xl mb-3">This region is sealed.</h3>
-            <p className="opacity-80">Reach <strong>{region.unlock_xp} XP</strong> by completing tours in unlocked regions, then the guides here will welcome you.</p>
-          </motion.div>
+          <div className="max-w-3xl mx-auto w-full">
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="text-center text-sand-100 mb-8"
+              data-testid="region-locked"
+            >
+              <div className="w-24 h-24 mx-auto rounded-full bg-sand-100/15 border-2 border-dashed border-sand-100/50 flex items-center justify-center mb-6">
+                <Lock className="w-10 h-10" />
+              </div>
+              <h3 className="font-display text-3xl mb-3">This region is sealed.</h3>
+              <p className="opacity-80">Reach <strong>{region.unlock_xp} XP</strong> by completing tours in unlocked regions, then the guides here will welcome you.</p>
+              <p className="opacity-70 text-xs tracking-[0.25em] uppercase mt-6">But the island's stories are free — read & listen below.</p>
+            </motion.div>
+            <RegionCodex regionId={region.region_id} />
+          </div>
         ) : (
           <div className="max-w-6xl mx-auto w-full">
             <motion.div
@@ -114,12 +119,13 @@ export default function RegionScene({ region, tours, unlocked, onClose }) {
             {regionTours.length === 0 ? (
               <div className="text-sand-100/80 text-center py-12">No tours posted here yet — Ti Dodo is plotting new adventures.</div>
             ) : (
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 pb-12">
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 pb-10">
                 {regionTours.map((t) => (
                   <QuestScroll key={t.tour_id} tour={t} regionName={region.name} onBegin={setConfirmTour} />
                 ))}
               </div>
             )}
+            <RegionCodex regionId={region.region_id} />
           </div>
         )}
       </div>

@@ -6,8 +6,9 @@ import RpgHud from "@/components/RpgHud";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Lock, Award, Layers, Compass, MapPin } from "lucide-react";
+import { Sparkles, Lock, Award, Layers, Compass, MapPin, Share2 } from "lucide-react";
 import { playClick } from "@/lib/sound";
+import ShareBadgeCard from "@/components/ShareBadgeCard";
 
 const CARD_LIB = {
   "card-blue-bay":      { name: "Blue Bay Reef",   tagline: "Turquoise & coral garden", image: "https://images.pexels.com/photos/15018959/pexels-photo-15018959.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940", rarity: "Common" },
@@ -33,6 +34,7 @@ export default function Badges() {
   const [profile, setProfile] = useState(null);
   const [tours, setTours] = useState([]);
   const [regions, setRegions] = useState([]);
+  const [shareBadge, setShareBadge] = useState(null); // { id, ...BADGE_LIB[id], tour, regionName, lore }
 
   useEffect(() => {
     Promise.all([api.get("/me/profile"), api.get("/tours"), api.get("/regions")]).then(([p, t, r]) => {
@@ -50,7 +52,23 @@ export default function Badges() {
   // Map card_id -> tour that unlocks it
   const cardToTour = {};
   tours.forEach((t) => { if (t.card_id) cardToTour[t.card_id] = t; });
+  // Map badge_id -> tour that unlocks it
+  const badgeToTour = {};
+  tours.forEach((t) => { if (t.badge_id) badgeToTour[t.badge_id] = t; });
   const regionName = (id) => regions.find((r) => r.region_id === id)?.name || id;
+
+  const openShare = async (id, b) => {
+    playClick();
+    const tour = badgeToTour[id];
+    let lore = null;
+    if (tour?.region) {
+      try {
+        const r = await api.get(`/codex/region/${tour.region}`);
+        lore = { lore_title: r.data.lore_title, lore_summary: r.data.lore_summary };
+      } catch {}
+    }
+    setShareBadge({ id, ...b, tour, regionName: tour ? regionName(tour.region) : null, lore });
+  };
 
   const unowned = Object.entries(CARD_LIB).filter(([id]) => !ownedCards.has(id));
 
@@ -170,17 +188,36 @@ export default function Badges() {
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: i * 0.06, duration: 0.35, ease: "backOut" }}
               >
-                <Card className={`card-clay p-6 text-center ${owned ? "" : "opacity-60"}`} data-testid={`badge-${id}`}>
+                <Card
+                  onClick={owned ? () => openShare(id, b) : undefined}
+                  className={`card-clay p-6 text-center relative ${owned ? "cursor-pointer hover:-translate-y-1 transition-transform" : "opacity-60"}`}
+                  data-testid={`badge-${id}`}
+                >
                   <div className={`w-20 h-20 rounded-full mx-auto flex items-center justify-center ring-4 ring-sand-100 shadow-lift ${owned ? toneStyle[b.tone] : "bg-sand-300"}`}>
                     {owned ? <Award className="w-9 h-9" /> : <Lock className="w-7 h-7 text-ink-700" />}
                   </div>
                   <div className="font-display text-base mt-4 italic">{b.name}</div>
                   <div className="text-xs text-ink-700 mt-1">{b.desc}</div>
+                  {owned && (
+                    <div className="mt-3 inline-flex items-center gap-1.5 text-[10px] tracking-[0.25em] uppercase text-jungle-700 bg-jungle-700/10 rounded-full px-2.5 py-1" data-testid={`badge-share-hint-${id}`}>
+                      <Share2 className="w-3 h-3" /> Tap to share
+                    </div>
+                  )}
                 </Card>
               </motion.div>
             );
           })}
         </div>
+
+        <ShareBadgeCard
+          open={!!shareBadge}
+          onOpenChange={(o) => !o && setShareBadge(null)}
+          badge={shareBadge}
+          tour={shareBadge?.tour}
+          regionName={shareBadge?.regionName}
+          lore={shareBadge?.lore}
+          player={{ name: profile.name, level: profile.level }}
+        />
       </main>
     </div>
   );
