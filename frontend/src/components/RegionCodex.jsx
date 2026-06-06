@@ -18,9 +18,9 @@ function fmtTime(s) {
   return `${m}:${sec.toString().padStart(2, "0")}`;
 }
 
-export default function RegionCodex({ regionId }) {
+export default function RegionCodex({ regionId, initialTab = "listen" }) {
   const [codex, setCodex] = useState(null);
-  const [tab, setTab] = useState("listen");
+  const [tab, setTab] = useState(initialTab);
   const [loading, setLoading] = useState(true);
 
   // Audio state

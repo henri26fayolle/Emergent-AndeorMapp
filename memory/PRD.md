@@ -27,6 +27,14 @@
 - AI travel companion "Ti Dodo".
 - Admin panel for tour-complete awarding.
 
+## What's been implemented (2026-02 / iteration 10 — UX OVERHAUL: open world, direct city entry, zoom, avatar HUD)
+- ✅ **All regions unlocked by default** — no more "sealed" gates anywhere. Backend backfills every existing user on startup
+- ✅ **Direct Port Louis entry** — tapping the Port Louis pin on the world map opens the city sub-map immediately (RegionScene bypassed for central-culture)
+- ✅ **Creole Table relocated** to the Port Louis sub-map with a chef-hat icon (now appears as a venue pin alongside Aapravasi/Blue Penny/Market/Cathedral/Citadelle/Champ de Mars)
+- ✅ **Pan & zoom on both maps** — react-zoom-pan-pinch, wheel + drag + double-click + dedicated +/- /reset controls bottom-right, max zoom 3× world / 4× city
+- ✅ **Floating Avatar HUD bottom-left** — hover the avatar bubble → radial fan of action icons (🎧 Listen · 📖 Read · 🗺 Tracks · 📜 Lore) → click opens a left-side drawer with region picker + the codex tabs (replaces the in-RegionScene codex panel)
+- ✅ **Codex removed from RegionScene** — lives entirely in the Avatar HUD drawer now (cleaner separation: scenes for booking, HUD for lore)
+
 ## What's been implemented (2026-02 / iteration 9 — MAIN QUESTS + PORT LOUIS SUB-MAP)
 - ✅ **Main Quests system** — 4 curated tour-bundle sagas (Wayfarer's Trail / Cascade Chaser / Heritage Keeper / Compleat Explorer) with theme colors, lore intros, epilogues, AOV-based reward tiers
 - ✅ **Multi-enrol, single-focus** — players can join many Main Quests at once; one "Focused" quest drives the map highlight

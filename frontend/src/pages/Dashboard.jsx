@@ -5,8 +5,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import RpgHud from "@/components/RpgHud";
 import MapMauritius from "@/components/MapMauritius";
 import RegionScene from "@/components/RegionScene";
+import PortLouisCityMap from "@/components/PortLouisCityMap";
+import AvatarHud from "@/components/AvatarHud";
 import { Sparkles } from "lucide-react";
-import { startAmbient, stopAmbient, playUnlock } from "@/lib/sound";
+import { startAmbient, stopAmbient, playUnlock, playOpenScene } from "@/lib/sound";
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -16,6 +18,7 @@ export default function Dashboard() {
   const [bookings, setBookings] = useState([]);
   const [mainQuests, setMainQuests] = useState([]);
   const [activeRegion, setActiveRegion] = useState(null);
+  const [showPortLouis, setShowPortLouis] = useState(false);
   const [greetingDone, setGreetingDone] = useState(false);
   const prevUnlockedRef = useRef(null);
 
@@ -158,7 +161,14 @@ export default function Dashboard() {
           <MapMauritius
             regions={regions}
             unlocked={unlocked}
-            onRegionClick={setActiveRegion}
+            onRegionClick={(r) => {
+              if (r.region_id === "central-culture") {
+                playOpenScene();
+                setShowPortLouis(true);
+              } else {
+                setActiveRegion(r);
+              }
+            }}
             focusedQuest={focused}
             focusedRegions={focusedRegions}
             focusedRemainingByRegion={focusedRemainingByRegion}
@@ -182,6 +192,18 @@ export default function Dashboard() {
           />
         )}
       </AnimatePresence>
+
+      {/* Direct Port Louis city sub-map (skips the RegionScene modal) */}
+      <PortLouisCityMap
+        open={showPortLouis}
+        onClose={async () => { setShowPortLouis(false); await load(); }}
+        tours={tours}
+        focusedQuest={focused}
+        focusedTourIds={new Set(focused?.tour_ids || [])}
+      />
+
+      {/* Floating avatar — opens codex/audio/lore/GPX drawer */}
+      <AvatarHud profile={profile} regions={regions} />
     </div>
   );
 }

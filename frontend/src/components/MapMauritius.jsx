@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
-import { Waves, Mountain, Wind, Anchor, Landmark, Lock, MapPin } from "lucide-react";
+import { Waves, Mountain, Wind, Anchor, Landmark, Lock, MapPin, Plus, Minus, RotateCcw } from "lucide-react";
+import { TransformWrapper, TransformComponent, useControls } from "react-zoom-pan-pinch";
 import { playSelect } from "@/lib/sound";
 
 const MAP_VIDEO = "/mauritius_map_loop.mp4";
@@ -21,15 +22,31 @@ export default function MapMauritius({ regions = [], unlocked = new Set(), onReg
       style={{ containerType: "size" }}
       data-testid="world-map-cover"
     >
-      {/* 16:9 cover-fit inner container — video + pin overlay share this coord space */}
-      <div
-        className="absolute left-1/2 top-1/2"
-        style={{
-          width: "max(100cqw, calc(100cqh * 16 / 9))",
-          height: "max(100cqh, calc(100cqw * 9 / 16))",
-          transform: "translate(-50%, -50%)",
-        }}
+      <TransformWrapper
+        initialScale={1}
+        minScale={1}
+        maxScale={3}
+        wheel={{ step: 0.18, smoothStep: 0.005 }}
+        doubleClick={{ disabled: false, mode: "toggle", step: 1.5 }}
+        panning={{ velocityDisabled: false }}
+        limitToBounds={true}
+        centerOnInit={true}
       >
+        {({ zoomIn, zoomOut, resetTransform }) => (
+          <>
+            <TransformComponent
+              wrapperStyle={{ width: "100%", height: "100%" }}
+              contentStyle={{ width: "100%", height: "100%" }}
+            >
+              {/* 16:9 cover-fit inner container — video + pin overlay share this coord space */}
+              <div
+                className="absolute left-1/2 top-1/2"
+                style={{
+                  width: "max(100cqw, calc(100cqh * 16 / 9))",
+                  height: "max(100cqh, calc(100cqw * 9 / 16))",
+                  transform: "translate(-50%, -50%)",
+                }}
+              >
         <motion.video
           autoPlay
           muted
@@ -197,7 +214,39 @@ export default function MapMauritius({ regions = [], unlocked = new Set(), onReg
             </motion.button>
           );
         })}
-      </div>
+              </div>
+            </TransformComponent>
+
+            {/* Zoom controls — bottom-right */}
+            <div className="absolute bottom-6 right-6 z-30 flex flex-col gap-2" data-testid="map-zoom-controls">
+              <button
+                onClick={() => zoomIn()}
+                aria-label="Zoom in"
+                data-testid="map-zoom-in"
+                className="w-11 h-11 rounded-full bg-sand-100/95 backdrop-blur text-jungle-700 flex items-center justify-center shadow-lift hover:bg-white border-2 border-jungle-700 transition-colors"
+              >
+                <Plus className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => zoomOut()}
+                aria-label="Zoom out"
+                data-testid="map-zoom-out"
+                className="w-11 h-11 rounded-full bg-sand-100/95 backdrop-blur text-jungle-700 flex items-center justify-center shadow-lift hover:bg-white border-2 border-jungle-700 transition-colors"
+              >
+                <Minus className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => resetTransform()}
+                aria-label="Reset zoom"
+                data-testid="map-zoom-reset"
+                className="w-11 h-11 rounded-full bg-sand-100/95 backdrop-blur text-jungle-700 flex items-center justify-center shadow-lift hover:bg-white border-2 border-jungle-700 transition-colors"
+              >
+                <RotateCcw className="w-4 h-4" />
+              </button>
+            </div>
+          </>
+        )}
+      </TransformWrapper>
 
       <style>{`
         @keyframes fogPulse { 0%,100% { opacity: 0.85; transform: scale(0.95); } 50% { opacity: 0.5; transform: scale(1.1); } }
