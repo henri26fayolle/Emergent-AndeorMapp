@@ -27,6 +27,14 @@
 - AI travel companion "Ti Dodo".
 - Admin panel for tour-complete awarding.
 
+## What's been implemented (2026-02 / iteration 2)
+- ✅ Pokemon-style **Prologue** entry: 5 cinematic dialog beats with typewriter ("Ti Dodo" NPC), name input, 6 avatar starter explorers (Reef Diver, Ridge Hiker, Spice Hunter, Sega Dancer, Wind Rider, Heritage Scholar), inline register, and 4-beat "How to play" tutorial → enters the world map
+- ✅ Marketing Landing page **removed**; `/` now boots straight into the Prologue
+- ✅ Header avatar renders the chosen RPG avatar (Lucide icon over color gradient)
+- ✅ ProtectedRoute gates non-admin users without `tutorial_completed` → redirected to `/onboarding`
+- ✅ New backend: `PATCH /api/me` (update avatar / name / tutorial_completed) and `public_user` now exposes `avatar` + `tutorial_completed`; admin auto-seeded with `avatar='scholar'`, `tutorial_completed=true`
+- ✅ Backend pytest **38/38 ✅** (11 new + 27 regression) and full frontend Prologue e2e flow ✅
+
 ## What's been implemented (2026-02 / iteration 1)
 - ✅ JWT register/login + Emergent Google OAuth (button on login/register, AuthCallback page)
 - ✅ Mauritius map dashboard with profile/XP/Level + region unlock state
