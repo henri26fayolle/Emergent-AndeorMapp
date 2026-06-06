@@ -16,7 +16,7 @@ const POSITIONS = {
 };
 
 // Waterfall position (matches the blue pool in the artwork)
-const FALLS = { x: 38, y: 54, w: 1.6, h: 5 };
+const FALLS = { x: 38, y: 54, w: 1.13, h: 5 };
 
 export default function MapMauritius({ regions = [], unlocked = new Set(), onRegionClick }) {
   return (
