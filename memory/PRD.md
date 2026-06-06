@@ -27,6 +27,15 @@
 - AI travel companion "Ti Dodo".
 - Admin panel for tour-complete awarding.
 
+## What's been implemented (2026-02 / iteration 7 — MAP POLISH)
+- ✅ **Pin coordinates re-calibrated** per geography: North Coast at top, Port Louis above the central mountains, Black River on the red-roof house (west coast), East Lagoons on the eastern green strip, Le Morne on the south-west mountain
+- ✅ **Hover tooltip** per pin — speech-bubble showing region name + 1-line teaser (e.g. "Sega night · Naïma", "Blue Bay snorkel · Sanjay")
+- ✅ **Cursor parallax**: map tilts up to ±3° on X/Y based on cursor position with smooth easing — amplifies the isometric feel
+- ✅ **Animated waterfall**: cascading white streaks (2 layered gradients with different speeds) + pulsing splash rings at the base — positioned over the artwork's blue pool
+- ✅ **Compass removed** from the map container (was getting visually lost on the ocean)
+- ✅ Full-screen tropical ocean backdrop with drifting sun-glints (already in place from iter6, kept)
+- ✅ All test IDs preserved + new `map-tooltip-{region_id}`
+
 ## What's been implemented (2026-02 / iteration 6 — ISOMETRIC ISLAND ART V1)
 - ✅ Replaced the flat SVG island with the **user-supplied isometric Mauritius illustration** as the World Map V1
 - ✅ Calibrated 5 region pin coordinates against the artwork (North Coast on the upper green hill, Black River near the waterfall pool, Port Louis on the central path, East Lagoons on the eastern shore, Le Morne on the southwestern peninsula)

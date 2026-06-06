@@ -60,6 +60,17 @@ export default function Dashboard() {
     await load();
   };
 
+  // Cursor-based parallax tilt
+  const [tilt, setTilt] = useState({ x: 0, y: 0 });
+  const onMouseMove = (e) => {
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    const nx = (e.clientX - w / 2) / (w / 2); // -1..1
+    const ny = (e.clientY - h / 2) / (h / 2);
+    setTilt({ x: -ny * 3, y: nx * 3 });
+  };
+  const onMouseLeave = () => setTilt({ x: 0, y: 0 });
+
   if (!profile) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-jungle-700">
@@ -127,9 +138,22 @@ export default function Dashboard() {
         )}
       </AnimatePresence>
 
-      {/* The world map — centered, large */}
-      <div className="absolute inset-0 z-10 flex items-center justify-center">
-        <div className="relative w-[min(94vw,86vh)] aspect-square" data-testid="world-map">
+      {/* The world map — centered, large, parallax-tilted */}
+      <div
+        className="absolute inset-0 z-10 flex items-center justify-center"
+        onMouseMove={onMouseMove}
+        onMouseLeave={onMouseLeave}
+        style={{ perspective: "1400px" }}
+      >
+        <div
+          className="relative w-[min(94vw,86vh)] aspect-square"
+          data-testid="world-map"
+          style={{
+            transform: `rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
+            transformStyle: "preserve-3d",
+            transition: "transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1)",
+          }}
+        >
           <MapMauritius regions={regions} unlocked={unlocked} onRegionClick={setActiveRegion} />
         </div>
       </div>
