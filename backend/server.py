@@ -83,6 +83,8 @@ def public_user(u: dict) -> dict:
         "role": u.get("role", "player"),
         "xp": u.get("xp", 0),
         "level": u.get("level", 1),
+        "avatar": u.get("avatar"),
+        "tutorial_completed": u.get("tutorial_completed", False),
         "auth_provider": u.get("auth_provider", "password"),
         "created_at": u.get("created_at"),
     }
@@ -138,6 +140,14 @@ class RegisterIn(BaseModel):
     email: EmailStr
     password: str = Field(min_length=6)
     name: str = Field(min_length=1)
+    avatar: Optional[str] = None
+    tutorial_completed: Optional[bool] = False
+
+
+class UpdateMeIn(BaseModel):
+    name: Optional[str] = None
+    avatar: Optional[str] = None
+    tutorial_completed: Optional[bool] = None
 
 
 class LoginIn(BaseModel):
@@ -228,10 +238,14 @@ async def seed_admin():
             "regions_unlocked": ["north-coast"],
             "cards": [],
             "badges": [],
+            "avatar": "scholar",
+            "tutorial_completed": True,
             "created_at": datetime.now(timezone.utc).isoformat(),
         })
     elif not verify_password(password, existing.get("password_hash", "")):
-        await db.users.update_one({"email": email}, {"$set": {"password_hash": hash_password(password), "role": "admin"}})
+        await db.users.update_one({"email": email}, {"$set": {"password_hash": hash_password(password), "role": "admin", "tutorial_completed": True, "avatar": existing.get("avatar") or "scholar"}})
+    elif not existing.get("tutorial_completed"):
+        await db.users.update_one({"email": email}, {"$set": {"tutorial_completed": True, "avatar": existing.get("avatar") or "scholar"}})
 
 
 @app.on_event("startup")
@@ -269,6 +283,8 @@ async def register(payload: RegisterIn, response: Response):
         "cards": [],
         "badges": [],
         "picture": None,
+        "avatar": payload.avatar,
+        "tutorial_completed": bool(payload.tutorial_completed),
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
     await db.users.insert_one(doc)
@@ -300,6 +316,15 @@ async def me(user: dict = Depends(get_current_user)):
     return public_user(user)
 
 
+@api.patch("/me")
+async def update_me(payload: UpdateMeIn, user: dict = Depends(get_current_user)):
+    update = {k: v for k, v in payload.model_dump(exclude_unset=True).items() if v is not None}
+    if update:
+        await db.users.update_one({"user_id": user["user_id"]}, {"$set": update})
+    doc = await db.users.find_one({"user_id": user["user_id"]}, {"_id": 0, "password_hash": 0})
+    return public_user(doc)
+
+
 @api.post("/auth/google/session")
 async def google_session(payload: SessionIn, response: Response):
     # Exchange Emergent session_id -> session_token, create/update user
@@ -327,6 +352,8 @@ async def google_session(payload: SessionIn, response: Response):
             "regions_unlocked": ["north-coast"],
             "cards": [],
             "badges": [],
+            "avatar": None,
+            "tutorial_completed": False,
             "created_at": datetime.now(timezone.utc).isoformat(),
         })
 

@@ -81,7 +81,7 @@ export default function Login() {
 
           <div className="mt-6 text-sm text-ink-700">
             New explorer?{" "}
-            <Link to="/register" className="font-semibold text-sunset-500 hover:underline" data-testid="login-go-register">Create an account</Link>
+            <Link to="/" className="font-semibold text-sunset-500 hover:underline" data-testid="login-go-register">Start your prologue</Link>
           </div>
         </form>
       </div>

@@ -3,9 +3,8 @@ import "@/App.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Toaster } from "@/components/ui/sonner";
-import Landing from "@/pages/Landing";
+import Prologue from "@/pages/Prologue";
 import Login from "@/pages/Login";
-import Register from "@/pages/Register";
 import AuthCallback from "@/pages/AuthCallback";
 import Dashboard from "@/pages/Dashboard";
 import Tours from "@/pages/Tours";
@@ -18,15 +17,14 @@ import Admin from "@/pages/Admin";
 
 function AppRouter() {
   const location = useLocation();
-  // Capture Emergent Google OAuth callback synchronously before any route check
   if (location.hash?.includes("session_id=")) {
     return <AuthCallback />;
   }
   return (
     <Routes>
-      <Route path="/" element={<Landing />} />
+      <Route path="/" element={<Prologue />} />
       <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
+      <Route path="/onboarding" element={<Prologue />} />
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
       <Route path="/tours" element={<ProtectedRoute><Tours /></ProtectedRoute>} />
       <Route path="/quests" element={<ProtectedRoute><Quests /></ProtectedRoute>} />
@@ -35,7 +33,7 @@ function AppRouter() {
       <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
       <Route path="/companion" element={<ProtectedRoute><Companion /></ProtectedRoute>} />
       <Route path="/admin" element={<ProtectedRoute admin><Admin /></ProtectedRoute>} />
-      <Route path="*" element={<Landing />} />
+      <Route path="*" element={<Prologue />} />
     </Routes>
   );
 }

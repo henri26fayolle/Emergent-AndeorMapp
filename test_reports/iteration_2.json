@@ -1,0 +1,44 @@
+{
+  "summary": "Iteration 2 testing complete for An Deor Quest Prologue/RPG flow. Backend: 38/38 pytest cases pass (11 NEW for PATCH /api/me + public_user shape + admin seed + register optional fields, 27 regression from iteration 1). Frontend Playwright: full Prologue flow exercised end-to-end (5 dialog beats with typewriter, name input gating, 6 avatar cards with selection feedback, register submit, 4-card tutorial, Enter Mauritius -> /dashboard). Verified: header avatar renders the Lucide icon for chosen avatar in a gradient circle; GET /api/auth/me after register+tutorial shows avatar='diver' and tutorial_completed=true; user without tutorial_completed is redirected from /dashboard to /onboarding (ProtectedRoute); returning user with tutorial_completed=true hitting / is redirected to /dashboard (Prologue useEffect); /login still works for password auth and lands admin on /dashboard with Admin menu item visible in dropdown. Admin seed values verified (avatar='scholar', tutorial_completed=true).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "PATCH /api/me", "issue": "No whitelist of allowed avatar IDs — user can store arbitrary string in 'avatar'. Frontend renders fallback gracefully but server could validate against the 6 canonical IDs (diver/hiker/foodie/dancer/surfer/scholar)."},
+      {"endpoint": "PATCH /api/me", "issue": "Empty PATCH body returns 200 with current public_user (acceptable, but no explicit 'nothing to update' semantics)."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Prologue dialog box", "issues": ["Pokemon-style dialog box has good contrast (dark ink-900 on sand-100); speaker chip and typewriter cursor render correctly; Mauritius background images load and cross-fade."]},
+      {"screen": "Prologue avatar grid", "issues": ["Selected state uses orange (sunset-500) border + Selected label — clear visual feedback; gradient circle icons consistent across all 6 cards."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration2_prologue.py",
+    "/app/backend/tests/test_andeor_api.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "(Optional) Server-side whitelist for avatar IDs in PATCH /api/me to enforce one of the 6 canonical values.",
+    "(Optional, carry-over from iter 1) Optimize /api/chat history replay; tighten /api/bookings/complete to admin/guide only; add login brute-force lockout."
+  ],
+  "critical_code_review_comments": [
+    "Prologue.jsx (353 lines) is within size budget but mixes 4 concerns (dialog, name, avatar, register, tutorial). Acceptable now; consider splitting into sub-components if it grows.",
+    "useTypewriter hook resets on every text change but its `deps` spread can cause subtle re-render races (mitigated here by 2-click 'skip then advance' UX). Works correctly in manual + automated testing.",
+    "PATCH /api/me uses model_dump(exclude_unset=True) AND filters out None — combined this means clients cannot explicitly null out a field (e.g., remove avatar). Fine for current UX but worth noting.",
+    "ProtectedRoute correctly excludes admin from tutorial gating so admin login is not trapped on /onboarding (verified end-to-end).",
+    "seed_admin now upserts avatar='scholar' and tutorial_completed=True idempotently — confirmed via login response."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration2_prologue.py (NEW)"
+  ],
+  "success_rate": {"backend": "100% (38/38)", "frontend": "100% of tested flows (Prologue end-to-end, gating, admin login, returning user redirect)"},
+  "test_credentials": "Admin: admin@andeor.mu / AnDeor2026!. New test players registered dynamically via Prologue UI (prologue_ui_*@example.com) and API (prologue_*@example.com, gate_*@example.com). Backend stays compatible with iteration 1 credentials.",
+  "seed_data_creation": "Multiple TEST_* users created via /api/auth/register with optional avatar+tutorial_completed fields; one UI-created user (prologue_ui_<ts>@example.com) completed the full Prologue+tutorial flow.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Run pytest at /app/backend/tests/ (38 tests, ~9-15s). Iteration 2 tests live in test_iteration2_prologue.py and cover PATCH /api/me, admin seed shape, register with avatar/tutorial. For UI prologue testing, dialog typewriter needs ~2.5s per line; use 'wait 2700ms then press Space' once per beat (5 beats total). Avatar 'Selected' label is CSS-uppercased — use case-insensitive contains. ProtectedRoute redirects authenticated non-admin users without tutorial_completed to /onboarding (=Prologue). Admin is exempt. Prologue useEffect sends already-tutorial-completed users to /dashboard when they hit /.",
+  "rca_of_the_issue": "No real bugs found. Two transient testing-script issues during exploration: (1) double-click race with React typewriter state was solved by switching to keyboard Space with explicit 2.5s wait; (2) 'Selected' label assertion failed due to CSS uppercase rendering — fixed via case-insensitive check. Both were test-script issues, not product bugs."
+}

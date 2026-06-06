@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Compass, Map, Award, Gift, Trophy, Sparkles, LogOut, ShieldCheck } from "lucide-react";
+import { findAvatar } from "@/lib/avatars";
 
 const navItems = [
   { to: "/dashboard", label: "Map", icon: Map },
@@ -18,6 +19,8 @@ const navItems = [
 export default function Header() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const avatarMeta = user?.avatar ? findAvatar(user.avatar) : null;
+  const AvatarIcon = avatarMeta?.icon;
 
   return (
     <header data-testid="app-header" className="sticky top-0 z-50 bg-white/70 backdrop-blur-xl border-b border-white/40 shadow-sm">
@@ -68,12 +71,15 @@ export default function Header() {
               </div>
               <DropdownMenu>
                 <DropdownMenuTrigger data-testid="header-avatar-trigger">
-                  <Avatar className="ring-2 ring-jungle-500/20 hover:ring-jungle-500/40 transition">
-                    <AvatarImage src={user.picture} />
-                    <AvatarFallback className="bg-sunset-500 text-white font-semibold">
-                      {(user.name || user.email).slice(0, 2).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ring-2 ring-jungle-500/20 hover:ring-jungle-500/50 transition ${avatarMeta ? `bg-gradient-to-br ${avatarMeta.gradient} text-white` : "bg-sunset-500 text-white"}`}>
+                    {AvatarIcon ? (
+                      <AvatarIcon className="w-5 h-5" />
+                    ) : user.picture ? (
+                      <img src={user.picture} alt="" className="w-full h-full rounded-full object-cover" />
+                    ) : (
+                      <span className="text-sm font-bold">{(user.name || user.email).slice(0, 2).toUpperCase()}</span>
+                    )}
+                  </div>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuLabel className="font-display">{user.name || user.email}</DropdownMenuLabel>

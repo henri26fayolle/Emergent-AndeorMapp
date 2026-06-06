@@ -1,5 +1,4 @@
-import { useEffect } from "react";
-import { Navigate, useLocation, useNavigate } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 
 export function ProtectedRoute({ children, admin = false }) {
@@ -12,6 +11,10 @@ export function ProtectedRoute({ children, admin = false }) {
     );
   }
   if (!user) return <Navigate to="/login" replace />;
+  // Onboarding gate — admins and tutorial-completed users pass; others go through Prologue
+  if (!admin && user.role !== "admin" && !user.tutorial_completed) {
+    return <Navigate to="/onboarding" replace />;
+  }
   if (admin && user.role !== "admin") return <Navigate to="/dashboard" replace />;
   return children;
 }
