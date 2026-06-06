@@ -27,6 +27,13 @@
 - AI travel companion "Ti Dodo".
 - Admin panel for tour-complete awarding.
 
+## What's been implemented (2026-02 / iteration 6 — ISOMETRIC ISLAND ART V1)
+- ✅ Replaced the flat SVG island with the **user-supplied isometric Mauritius illustration** as the World Map V1
+- ✅ Calibrated 5 region pin coordinates against the artwork (North Coast on the upper green hill, Black River near the waterfall pool, Port Louis on the central path, East Lagoons on the eastern shore, Le Morne on the southwestern peninsula)
+- ✅ Redesigned pins as teardrop-style markers with stem + label, sun-glow halo for unlocked pins, fog-of-war over locked ones
+- ✅ Replaced photo backdrop with a clean tropical-cyan ocean radial gradient + drifting sun-glint pattern + rotating dashed reef rings — the artwork now reads as the focal point
+- ✅ All previous map test IDs (`map-region-*`), region scene flow, sound effects, and HUD preserved (no regressions)
+
 ## What's been implemented (2026-02 / iteration 5 — GAME-FEEL POLISH)
 - ✅ **Soundscape (procedural Web Audio, no hosted files)**: ambient ocean (brown-noise → lowpass → slow LFO surf swell) on the world map starting on first gesture; click sfx on region pins / nav buttons; XP chime on successful guide check-in; fanfare on a new region unlock; mute toggle in HUD (persists via `localStorage`)
 - ✅ **Animated map**: 5 swaying palm trees on the island (CSS `palmSway`), 3 rotating dashed ocean rings (`mapSpin`/`mapSpinR`), pulsing inner white ring, and a fog-of-war radial glow (`fogPulse` + 1.5px blur) over every locked region pin

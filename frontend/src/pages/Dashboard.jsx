@@ -8,8 +8,6 @@ import RegionScene from "@/components/RegionScene";
 import { Sparkles } from "lucide-react";
 import { startAmbient, stopAmbient, playUnlock } from "@/lib/sound";
 
-const WORLD_BG = "https://images.pexels.com/photos/36731927/pexels-photo-36731927.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=1080&w=1920";
-
 export default function Dashboard() {
   const { user } = useAuth();
   const [profile, setProfile] = useState(null);
@@ -74,18 +72,30 @@ export default function Dashboard() {
   const pendingBookings = bookings.filter((b) => b.status !== "completed");
 
   return (
-    <div className="fixed inset-0 overflow-hidden bg-jungle-700">
-      {/* World backdrop */}
-      <motion.img
-        src={WORLD_BG}
-        alt=""
-        initial={{ scale: 1.08, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ duration: 1.4, ease: "easeOut" }}
-        className="absolute inset-0 w-full h-full object-cover"
+    <div className="fixed inset-0 overflow-hidden">
+      {/* Ocean backdrop — matches the cyan of the isometric island artwork */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(ellipse at 50% 30%, #7BC7D9 0%, #43A3BA 35%, #1F7892 75%, #004B56 100%)",
+        }}
       />
-      <div className="absolute inset-0 bg-gradient-to-b from-jungle-700/30 via-jungle-700/30 to-jungle-700/85" />
-      <div className="absolute inset-0 paper-bg opacity-20 mix-blend-overlay" />
+      {/* Subtle moving sun-glint pattern over the ocean */}
+      <div
+        aria-hidden
+        className="absolute inset-0 opacity-25 mix-blend-overlay"
+        style={{
+          backgroundImage:
+            "radial-gradient(circle at 30% 20%, rgba(255,255,255,0.6) 0, transparent 8%)," +
+            "radial-gradient(circle at 70% 40%, rgba(255,255,255,0.4) 0, transparent 6%)," +
+            "radial-gradient(circle at 50% 75%, rgba(255,255,255,0.5) 0, transparent 7%)",
+          backgroundSize: "300px 300px",
+          animation: "oceanGlint 30s linear infinite",
+        }}
+      />
+      <style>{`@keyframes oceanGlint{0%{background-position:0 0,0 0,0 0}100%{background-position:300px 200px,-200px 250px,200px -250px}}`}</style>
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-jungle-700/40" />
 
       {/* Top-left welcome ribbon (auto-fades) */}
       <AnimatePresence>
