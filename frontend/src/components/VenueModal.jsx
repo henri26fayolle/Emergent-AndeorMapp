@@ -132,7 +132,13 @@ export default function VenueModal({ open, tourId, focusedQuest, isFocused, onCl
                 {/* Title overlay */}
                 <div className="absolute left-0 right-0 bottom-0 p-4 lg:p-5">
                   <div className="text-[10px] tracking-[0.3em] uppercase text-sand-100/85 font-bold">
-                    {data.subregion ? "Port Louis · Venue" : (data.region || "Mauritius").replace(/-/g, " ")}
+                    {(() => {
+                      const sub = data.subregion;
+                      if (sub === "port-louis") return "Port Louis · Venue";
+                      if (sub === "north-coast") return "North Coast · Venue";
+                      if (sub) return `${sub.replace(/-/g, " ")} · Venue`;
+                      return (data.region || "Mauritius").replace(/-/g, " ");
+                    })()}
                   </div>
                   <h3 className="font-display text-2xl lg:text-3xl text-sand-100 italic drop-shadow leading-tight mt-0.5">{data.name}</h3>
                 </div>

@@ -7,6 +7,7 @@ import RpgHud from "@/components/RpgHud";
 import MapMauritius from "@/components/MapMauritius";
 import RegionScene from "@/components/RegionScene";
 import PortLouisCityMap from "@/components/PortLouisCityMap";
+import NorthCoastMap from "@/components/NorthCoastMap";
 import AvatarHud from "@/components/AvatarHud";
 import MapCinematic from "@/components/MapCinematic";
 import { Sparkles } from "lucide-react";
@@ -23,6 +24,7 @@ export default function Dashboard() {
   const [mainQuests, setMainQuests] = useState([]);
   const [activeRegion, setActiveRegion] = useState(null);
   const [showPortLouis, setShowPortLouis] = useState(false);
+  const [showNorthCoast, setShowNorthCoast] = useState(false);
   const [greetingDone, setGreetingDone] = useState(false);
   const [cinematic, setCinematic] = useState(!!location.state?.cinematic);
   const prevUnlockedRef = useRef(null);
@@ -146,6 +148,9 @@ export default function Dashboard() {
               if (r.region_id === "central-culture") {
                 playOpenScene();
                 setShowPortLouis(true);
+              } else if (r.region_id === "north-coast") {
+                playOpenScene();
+                setShowNorthCoast(true);
               } else {
                 setActiveRegion(r);
               }
@@ -178,6 +183,16 @@ export default function Dashboard() {
       <PortLouisCityMap
         open={showPortLouis}
         onClose={async () => { setShowPortLouis(false); await load(); }}
+        tours={tours}
+        focusedQuest={focused}
+        focusedTourIds={new Set(focused?.tour_ids || [])}
+        profile={profile}
+      />
+
+      {/* North Coast sub-map — same UX as Port Louis */}
+      <NorthCoastMap
+        open={showNorthCoast}
+        onClose={async () => { setShowNorthCoast(false); await load(); }}
         tours={tours}
         focusedQuest={focused}
         focusedTourIds={new Set(focused?.tour_ids || [])}

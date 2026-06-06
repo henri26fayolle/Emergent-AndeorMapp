@@ -106,8 +106,77 @@ MAIN_QUESTS = [
 ]
 
 
-# New tours to add to the catalog (waterfalls + Port Louis venues).
+# New tours to add to the catalog (waterfalls + Port Louis venues + North Coast venues).
 EXTRA_TOURS = [
+    # ---- North Coast venues (rendered on the North Coast sub-map artwork) ----
+    {
+        "tour_id": "t-pereybere-snorkel",
+        "name": "Pereybère Snorkel Half-Day",
+        "region": "north-coast",
+        "subregion": "north-coast",
+        "city_x": 38,
+        "city_y": 60,
+        "category": "outdoor",
+        "description": "Slip into the shallow corals of Pereybère bay — sergeant majors, parrotfish and the odd sea turtle.",
+        "price": 35,
+        "duration": "3h",
+        "xp_reward": 85,
+        "card_id": "card-pereybere",
+        "badge_id": "badge-coral-friend",
+        "guide_pin": "PEREB1",
+        "image": "https://images.pexels.com/photos/15018959/pexels-photo-15018959.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+    },
+    {
+        "tour_id": "t-cap-malheureux",
+        "name": "Cap Malheureux Red-Roof Chapel",
+        "region": "north-coast",
+        "subregion": "north-coast",
+        "city_x": 62,
+        "city_y": 12,
+        "category": "culture",
+        "description": "Mauritius' most photographed chapel — Notre-Dame Auxiliatrice — perched on the northern tip, framed by Coin de Mire.",
+        "price": 20,
+        "duration": "1.5h",
+        "xp_reward": 55,
+        "card_id": "card-cap-malheureux",
+        "badge_id": "badge-northern-pilgrim",
+        "guide_pin": "CAPM01",
+        "image": "https://images.pexels.com/photos/8387277/pexels-photo-8387277.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+    },
+    {
+        "tour_id": "t-grand-baie-cruise",
+        "name": "Grand Baie Catamaran Day",
+        "region": "north-coast",
+        "subregion": "north-coast",
+        "city_x": 60,
+        "city_y": 48,
+        "category": "outdoor",
+        "description": "Day on the water from Grand Baie — northern islets, snorkel stops, rougaille lunch on deck.",
+        "price": 110,
+        "duration": "8h",
+        "xp_reward": 170,
+        "card_id": "card-grand-baie",
+        "badge_id": "badge-catamaran",
+        "guide_pin": "BAIE12",
+        "image": "https://images.pexels.com/photos/7415730/pexels-photo-7415730.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+    },
+    {
+        "tour_id": "t-trou-aux-biches",
+        "name": "Trou-aux-Biches Sunset Walk",
+        "region": "north-coast",
+        "subregion": "north-coast",
+        "city_x": 35,
+        "city_y": 90,
+        "category": "outdoor",
+        "description": "Long beach stroll on Mauritius' most famous filao-lined sands as the sun drops into the lagoon.",
+        "price": 18,
+        "duration": "2h",
+        "xp_reward": 50,
+        "card_id": "card-trou-aux-biches",
+        "badge_id": "badge-filao-walker",
+        "guide_pin": "BICHES",
+        "image": "https://images.pexels.com/photos/36731927/pexels-photo-36731927.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+    },
     # Waterfalls
     {
         "tour_id": "t-hike-tamarind-falls",
@@ -252,6 +321,12 @@ async def seed_main_quests(db):
             {"$set": t},
             upsert=True,
         )
+
+    # Patch existing Sega Night with North Coast sub-map coords (positioned over the south sandy bay)
+    await db.tours.update_one(
+        {"tour_id": "t-sega-night"},
+        {"$set": {"subregion": "north-coast", "city_x": 50, "city_y": 78}},
+    )
 
     # Insert/update the main quests
     for q in MAIN_QUESTS:
