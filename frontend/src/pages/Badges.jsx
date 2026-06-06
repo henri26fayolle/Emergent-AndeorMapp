@@ -146,7 +146,7 @@ export default function Badges() {
                           size="sm"
                           onClick={() => { playClick(); navigate(`/tours?focus=${tour.tour_id}`); }}
                           data-testid={`pokedex-find-${id}`}
-                          className="rounded-full bg-jungle-700 hover:bg-jungle-600 text-sand-100 shrink-0"
+                          className="rounded-full bg-sun-500 hover:bg-sun-600 text-ink-900 shrink-0 font-bold"
                         >
                           <Compass className="w-3.5 h-3.5 mr-1" /> Find quest
                         </Button>

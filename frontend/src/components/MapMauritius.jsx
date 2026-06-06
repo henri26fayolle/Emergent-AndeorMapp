@@ -162,9 +162,10 @@ export default function MapMauritius({ regions = [], unlocked = new Set(), onReg
               {!isUnlocked && (
                 <span
                   aria-hidden
-                  className="absolute -inset-6 rounded-full pointer-events-none"
+                  className="absolute -inset-8 rounded-full pointer-events-none"
                   style={{
-                    background: "radial-gradient(circle, rgba(16,46,37,0.55) 0%, rgba(16,46,37,0.25) 45%, transparent 75%)",
+                    background: "radial-gradient(circle, rgba(16,46,37,0.7) 0%, rgba(16,46,37,0.35) 45%, transparent 78%)",
+                    filter: "blur(1.5px)",
                     animation: "fogPulse 4s ease-in-out infinite",
                   }}
                 />

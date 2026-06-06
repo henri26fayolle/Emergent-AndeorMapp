@@ -27,6 +27,13 @@
 - AI travel companion "Ti Dodo".
 - Admin panel for tour-complete awarding.
 
+## What's been implemented (2026-02 / iteration 5 — GAME-FEEL POLISH)
+- ✅ **Soundscape (procedural Web Audio, no hosted files)**: ambient ocean (brown-noise → lowpass → slow LFO surf swell) on the world map starting on first gesture; click sfx on region pins / nav buttons; XP chime on successful guide check-in; fanfare on a new region unlock; mute toggle in HUD (persists via `localStorage`)
+- ✅ **Animated map**: 5 swaying palm trees on the island (CSS `palmSway`), 3 rotating dashed ocean rings (`mapSpin`/`mapSpinR`), pulsing inner white ring, and a fog-of-war radial glow (`fogPulse` + 1.5px blur) over every locked region pin
+- ✅ **NPC chibi portraits** (inline SVG, no external assets): Naïma (snorkel + braid), Akil (hiking hat + backpack), Léa (sunglasses + flowing hair), Sanjay (dive mask + curls), Marie (turban + earrings). Render next to the region dialog box
+- ✅ **Pokedex discovery feed** on `/badges`: lists each unowned card with the tour that unlocks it (region + tour name) and a sun-tinted "Find quest" CTA → `/tours?focus={tour_id}` auto-scrolls and ring-highlights the target scroll
+- ✅ Frontend e2e **100% ✅** of iter5 features. Backend unchanged.
+
 ## What's been implemented (2026-02 / iteration 4 — RPG WORLD REDESIGN)
 - ✅ **Dashboard → immersive full-screen World Map**: Mauritius landscape backdrop, stylized SVG island with reef rings + compass, animated region pins (Waves/Mountain/Anchor/Wind/Landmark icons), Ti Dodo welcome ribbon
 - ✅ **Region Scene overlay**: clicking a pin opens a Pokemon-style scene with the region's NPC guide (Naïma · Sea Guide, Akil · Trail Master, Léa · Wind Whisperer, Sanjay · Reef Keeper, Marie · Heritage Keeper), Creole dialogue, quest scrolls, and a "Return to map" button. Locked regions show a sealed state with XP threshold
