@@ -8,11 +8,11 @@ const MAP_IMG = "https://customer-assets.emergentagent.com/job_explore-earn-5/ar
 // x/y are percentages of the (square) map container.
 // `teaser` is the 1-line hover hint shown above the pin.
 const POSITIONS = {
-  "north-coast":     { x: 46, y: 12, name: "North Coast",  icon: Waves,    teaser: "Sega night · Naïma" },
+  "north-coast":     { x: 46, y: 6,  name: "North Coast",  icon: Waves,    teaser: "Sega night · Naïma" },
   "central-culture": { x: 36, y: 30, name: "Port Louis",   icon: Landmark, teaser: "Creole table · Marie" },
-  "black-river":     { x: 22, y: 56, name: "Black River",  icon: Mountain, teaser: "Le Pouce sunrise · Akil" },
+  "black-river":     { x: 18, y: 56, name: "Black River",  icon: Mountain, teaser: "Le Pouce sunrise · Akil" },
   "east-lagoons":    { x: 74, y: 75, name: "East Lagoons", icon: Anchor,   teaser: "Blue Bay snorkel · Sanjay" },
-  "south-wild":      { x: 22, y: 78, name: "Le Morne",     icon: Wind,     teaser: "Kite sessions · Léa" },
+  "south-wild":      { x: 18, y: 78, name: "Le Morne",     icon: Wind,     teaser: "Kite sessions · Léa" },
 };
 
 // Waterfall position (matches the blue pool in the artwork)
