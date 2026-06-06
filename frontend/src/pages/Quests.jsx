@@ -44,6 +44,8 @@ export default function Quests({ embedded = false }) {
       setCheckInBooking(null);
       await refresh();
       await load();
+      // Fire global event — EpilogueWatcher will check for newly completed Main Quests
+      window.dispatchEvent(new CustomEvent("andeor:checkin-completed"));
     } catch (e) {
       setError(formatErr(e.response?.data?.detail) || e.message);
     } finally {

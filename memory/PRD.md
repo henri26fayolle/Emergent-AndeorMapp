@@ -27,7 +27,19 @@
 - AI travel companion "Ti Dodo".
 - Admin panel for tour-complete awarding.
 
-## What's been implemented (2026-02 / iteration 12 — VENUE MODAL + CITY CODEX)
+## What's been implemented (2026-02 / iteration 13 — HUD MODALS + MAIN QUEST STORY + EPILOGUE CUTSCENE)
+- ✅ **All right-rail HUD actions open as in-game modals** (Main Quests, Side Quests, Bag, Vault, Rank, Ti Dodo) instead of full-page routes — the map stays visible behind. Map and Admin buttons still navigate.
+- ✅ **`HudPanels` modal host** renders each page embedded (`embedded` prop on Badges/Rewards/MainQuests/Quests/Leaderboard/Companion). Standalone routes still work for deep links.
+- ✅ **Main Quests redesigned** as compact teaser cards (icon + title + 1-line subtitle + tiny progress). Tapping a saga opens an animated 3-chapter story:
+  - Chapter 1 — Ti Dodo lore monologue (typewriter)
+  - Chapter 2 — Tours in this saga (stagger reveal)
+  - Chapter 3 — Rewards on completion + Enrol/Focus/Leave CTA
+  - Keyboard: Space/Enter/→ advance · Esc returns to list
+- ✅ **Main Quest Epilogue cutscene** — fires automatically when a saga is fully completed. 3 cinematic beats: Ti Dodo epilogue monologue → animated "Title Earned" crown reveal (e.g. *"Wayfarer of An Deor"*) → "Your spoils" panel with the generated 50% bundle voucher code (copy button), unique title, T-shirt/Partner Goodie tiers if AOV qualifies. Triggered globally via `andeor:checkin-completed` event → `EpilogueWatcher` polls `/main-quests/check-completion`.
+- ✅ **Cinematic Prologue→Map transition** — a 5s video bridge plays after "Enter Mauritius" and cross-fades into the live map. Fixed a redirect race that wiped the cinematic state.
+- ✅ **Removed +/- and reset zoom controls** + cursor parallax tilt on both maps (wheel/pinch/double-click zoom still work).
+
+
 - ✅ **Avatar HUD inside Port Louis sub-map** — same UX as world map but scoped to city venues (tour-level codex picker instead of region-level)
 - ✅ **Rich venue modal** replaces the simple "Accept this quest?" dialog: hero image, price/time/XP meta, italic teaser, audio sneak-peek player, "Read the full lore" expand button, "Accept the Quest" CTA
 - ✅ **Expand-into-wider modal** — clicking "Read the full lore" smoothly transitions the modal from 1-column to 2-column with a parchment-styled codex panel showing the drop-cap full written lore alongside the booking card

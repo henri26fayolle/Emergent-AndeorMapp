@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { findAvatar } from "@/lib/avatars";
 import AvatarPickerDialog from "@/components/AvatarPickerDialog";
 import HudPanels from "@/components/HudPanels";
+import EpilogueWatcher from "@/components/EpilogueWatcher";
 import { isMuted, toggleMuted, subscribe, playClick } from "@/lib/sound";
 import { useEffect, useState } from "react";
 import {
@@ -132,6 +133,9 @@ export default function RpgHud() {
 
       {/* In-game modal panels — Main Quests / Side Quests / Bag / Vault / Rank / Ti Dodo */}
       <HudPanels panel={openPanel} onClose={() => setOpenPanel(null)} />
+
+      {/* Global watcher — plays the Main Quest Epilogue cutscene on completion */}
+      <EpilogueWatcher />
 
       <style>{`@keyframes hudShimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}`}</style>
     </>
