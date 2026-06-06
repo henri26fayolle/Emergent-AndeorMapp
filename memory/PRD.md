@@ -27,6 +27,16 @@
 - AI travel companion "Ti Dodo".
 - Admin panel for tour-complete awarding.
 
+## What's been implemented (2026-02 / iteration 4 — RPG WORLD REDESIGN)
+- ✅ **Dashboard → immersive full-screen World Map**: Mauritius landscape backdrop, stylized SVG island with reef rings + compass, animated region pins (Waves/Mountain/Anchor/Wind/Landmark icons), Ti Dodo welcome ribbon
+- ✅ **Region Scene overlay**: clicking a pin opens a Pokemon-style scene with the region's NPC guide (Naïma · Sea Guide, Akil · Trail Master, Léa · Wind Whisperer, Sanjay · Reef Keeper, Marie · Heritage Keeper), Creole dialogue, quest scrolls, and a "Return to map" button. Locked regions show a sealed state with XP threshold
+- ✅ **RPG HUD** (replaces SaaS top-nav on all gameplay routes): bottom bar with avatar portrait (click → swap explorer), name, level chip, animated gradient XP bar with shimmer; right-side floating action menu (Map / Journal / Bag / Vault / Rank / Ti Dodo / Admin / Sign-out)
+- ✅ **QuestScroll cards**: parchment-textured tour cards with torn-paper edges, sepia hero image, wax-seal XP badge — replaces product-style grid
+- ✅ Re-themed every player page: Tours → "Adventurer's board", Quests → "Adventurer's journal", Badges → "Adventurer's bag", Rewards → "Treasure vault", Leaderboard → "Hall of explorers"
+- ✅ Admin page intentionally keeps the previous admin-style Header (it should look like admin)
+- ✅ `seed_admin` is now strictly idempotent for `avatar` & `tutorial_completed`
+- ✅ Frontend e2e **100% ✅** of new RPG flows. Backend **54/54 ✅** after data-drift fix.
+
 ## What's been implemented (2026-02 / iteration 3)
 - ✅ **Framer-motion Prologue polish**: Ken Burns background crossfade, `AnimatePresence mode="wait"` between scenes, staggered avatar grid entrance, slide-in tutorial cards, animated progress bar
 - ✅ **One-click avatar swap from Header**: "Change explorer" dropdown item → `AvatarPickerDialog` (motion stagger) → `PATCH /api/me`, header icon updates live

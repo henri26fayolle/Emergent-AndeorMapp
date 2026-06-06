@@ -153,8 +153,10 @@ export default function RpgHud() {
             <div className="w-9 h-9 rounded-2xl bg-jungle-700 text-sand-100 font-display flex items-center justify-center">A</div>
           </Link>
         </div>
-        <div className="text-center mt-2 text-[10px] tracking-[0.3em] uppercase text-white/80 drop-shadow [text-shadow:0_1px_2px_rgba(0,0,0,0.6)]">
-          Tap your portrait to change explorer · Right side menu to travel
+        <div className="flex justify-center mt-2">
+          <div className="inline-block px-3 py-1 rounded-full bg-jungle-700/70 backdrop-blur text-[10px] tracking-[0.3em] uppercase text-sand-100">
+            Tap your portrait to change explorer · Side menu to travel
+          </div>
         </div>
       </motion.div>
 

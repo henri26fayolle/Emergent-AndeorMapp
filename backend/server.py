@@ -255,9 +255,10 @@ async def seed_admin():
             "created_at": datetime.now(timezone.utc).isoformat(),
         })
     elif not verify_password(password, existing.get("password_hash", "")):
-        await db.users.update_one({"email": email}, {"$set": {"password_hash": hash_password(password), "role": "admin", "tutorial_completed": True, "avatar": existing.get("avatar") or "scholar"}})
-    elif not existing.get("tutorial_completed"):
-        await db.users.update_one({"email": email}, {"$set": {"tutorial_completed": True, "avatar": existing.get("avatar") or "scholar"}})
+        await db.users.update_one({"email": email}, {"$set": {"password_hash": hash_password(password), "role": "admin", "tutorial_completed": True, "avatar": "scholar"}})
+    else:
+        # Always ensure admin keeps canonical RPG state across restarts
+        await db.users.update_one({"email": email}, {"$set": {"tutorial_completed": True, "avatar": "scholar"}})
 
 
 @app.on_event("startup")
