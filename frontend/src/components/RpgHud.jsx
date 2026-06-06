@@ -1,11 +1,12 @@
-import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { findAvatar } from "@/lib/avatars";
 import AvatarPickerDialog from "@/components/AvatarPickerDialog";
+import { isMuted, toggleMuted, subscribe, playClick } from "@/lib/sound";
+import { useEffect, useState } from "react";
 import {
-  ScrollText, Sparkles, Layers, Gift, Trophy, ShieldCheck, LogOut, Map as MapIcon, MessageCircle,
+  ScrollText, Sparkles, Layers, Gift, Trophy, ShieldCheck, LogOut, Map as MapIcon, MessageCircle, Volume2, VolumeX,
 } from "lucide-react";
 
 const ACTIONS = [
@@ -22,8 +23,12 @@ export default function RpgHud() {
   const navigate = useNavigate();
   const location = useLocation();
   const [avatarOpen, setAvatarOpen] = useState(false);
+  const [muted, setMuted] = useState(isMuted());
+  useEffect(() => subscribe(setMuted), []);
+
   if (!user) return null;
 
+  const goto = (to) => { playClick(); navigate(to); };
   const meta = user.avatar ? findAvatar(user.avatar) : null;
   const Icon = meta?.icon;
   const xpInLevel = user.xp % 100;
@@ -50,7 +55,7 @@ export default function RpgHud() {
               transition={{ delay: 0.08 + i * 0.06, duration: 0.3, ease: "easeOut" }}
               whileHover={{ x: -4, scale: 1.04 }}
               whileTap={{ scale: 0.94 }}
-              onClick={() => navigate(a.to)}
+              onClick={() => goto(a.to)}
               data-testid={`hud-action-${a.id}`}
               className={`group relative w-12 h-12 rounded-2xl flex items-center justify-center shadow-clay border border-black/5 transition-colors ${
                 active
@@ -73,7 +78,7 @@ export default function RpgHud() {
             transition={{ delay: 0.5, duration: 0.3 }}
             whileHover={{ x: -4 }}
             whileTap={{ scale: 0.94 }}
-            onClick={() => navigate("/admin")}
+            onClick={() => goto("/admin")}
             data-testid="hud-action-admin"
             className="w-12 h-12 rounded-2xl flex items-center justify-center bg-sunset-500 text-white shadow-clay"
             title="Admin"
@@ -87,7 +92,20 @@ export default function RpgHud() {
           transition={{ delay: 0.55, duration: 0.3 }}
           whileHover={{ x: -4 }}
           whileTap={{ scale: 0.94 }}
-          onClick={async () => { await logout(); navigate("/"); }}
+          onClick={() => { playClick(); toggleMuted(); }}
+          data-testid="hud-action-mute"
+          className="w-12 h-12 rounded-2xl flex items-center justify-center bg-sand-100/95 backdrop-blur text-ink-700 shadow-clay border border-black/5"
+          title={muted ? "Unmute" : "Mute"}
+        >
+          {muted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+        </motion.button>
+        <motion.button
+          initial={{ opacity: 0, x: 16 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.6, duration: 0.3 }}
+          whileHover={{ x: -4 }}
+          whileTap={{ scale: 0.94 }}
+          onClick={async () => { playClick(); await logout(); navigate("/"); }}
           data-testid="hud-action-logout"
           className="w-12 h-12 rounded-2xl flex items-center justify-center bg-sand-100/95 backdrop-blur text-ink-700 shadow-clay border border-black/5"
           title="Sign out"

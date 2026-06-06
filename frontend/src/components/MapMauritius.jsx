@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { Waves, Mountain, Wind, Anchor, Landmark, Lock, MapPin } from "lucide-react";
+import { playSelect } from "@/lib/sound";
 
 // Stylised hand-positioned Mauritius regions — playful game-map look (not geo-accurate)
 const POSITIONS = {
@@ -37,6 +38,11 @@ export default function MapMauritius({ regions = [], unlocked = new Set(), onReg
           <pattern id="trees" patternUnits="userSpaceOnUse" width="6" height="6">
             <circle cx="3" cy="3" r="0.7" fill="#102E25" opacity="0.35" />
           </pattern>
+          <radialGradient id="fog" cx="50%" cy="50%" r="60%">
+            <stop offset="0" stopColor="#102E25" stopOpacity="0.55" />
+            <stop offset="0.6" stopColor="#102E25" stopOpacity="0.25" />
+            <stop offset="1" stopColor="#102E25" stopOpacity="0" />
+          </radialGradient>
           <filter id="landShadow" x="-20%" y="-20%" width="140%" height="140%">
             <feGaussianBlur stdDeviation="0.8" />
           </filter>
@@ -44,10 +50,26 @@ export default function MapMauritius({ regions = [], unlocked = new Set(), onReg
 
         {/* Sea backdrop */}
         <rect x="0" y="0" width="100" height="100" fill="url(#sea)" />
-        {/* Ocean ripple rings */}
-        <g opacity="0.4" stroke="#BFE4E8" fill="none" strokeWidth="0.2">
-          <circle cx="50" cy="50" r="42" strokeDasharray="0.6 1.5" />
-          <circle cx="50" cy="50" r="46" strokeDasharray="0.4 2" />
+
+        {/* Continuous ocean ripple rings (rotating slowly) */}
+        <g opacity="0.45" stroke="#BFE4E8" fill="none" strokeWidth="0.2" style={{ transformOrigin: "50% 50%" }}>
+          <g style={{ animation: "mapSpin 60s linear infinite", transformOrigin: "50% 50%", transformBox: "fill-box" }}>
+            <circle cx="50" cy="50" r="42" strokeDasharray="0.6 1.5" />
+          </g>
+          <g style={{ animation: "mapSpinR 90s linear infinite", transformOrigin: "50% 50%", transformBox: "fill-box" }}>
+            <circle cx="50" cy="50" r="46" strokeDasharray="0.4 2" />
+          </g>
+          <g style={{ animation: "mapSpin 120s linear infinite", transformOrigin: "50% 50%", transformBox: "fill-box" }}>
+            <circle cx="50" cy="50" r="49" strokeDasharray="0.3 2.5" />
+          </g>
+        </g>
+
+        {/* Pulsing inner rings */}
+        <g fill="none" stroke="#FFFFFF" opacity="0.18">
+          <circle cx="50" cy="50" r="40">
+            <animate attributeName="r" values="40;48;40" dur="6s" repeatCount="indefinite" />
+            <animate attributeName="opacity" values="0.18;0;0.18" dur="6s" repeatCount="indefinite" />
+          </circle>
         </g>
 
         {/* Island shadow */}
@@ -87,10 +109,33 @@ export default function MapMauritius({ regions = [], unlocked = new Set(), onReg
           opacity="0.45"
         />
 
-        {/* Le Morne ridge marker */}
+        {/* Decorative peaks */}
         <path d="M36,80 L40,76 L44,80 Z" fill="#102E25" opacity="0.5" />
-        {/* Le Pouce peak hint */}
         <path d="M27,52 L30,46 L33,52 Z" fill="#102E25" opacity="0.55" />
+
+        {/* Swaying palm trees on island */}
+        {[
+          { x: 70, y: 22, scale: 1.0, delay: 0 },
+          { x: 25, y: 35, scale: 0.9, delay: 0.6 },
+          { x: 80, y: 50, scale: 1.1, delay: 1.2 },
+          { x: 32, y: 65, scale: 0.85, delay: 0.3 },
+          { x: 62, y: 60, scale: 0.95, delay: 0.9 },
+        ].map((p, i) => (
+          <g key={i} transform={`translate(${p.x} ${p.y}) scale(${p.scale})`} style={{ transformOrigin: `${p.x}px ${p.y}px` }}>
+            <g style={{ animation: `palmSway 3.4s ease-in-out ${p.delay}s infinite`, transformOrigin: "0 6px", transformBox: "fill-box" }}>
+              {/* Trunk */}
+              <rect x="-0.4" y="0" width="0.8" height="6" fill="#3A2317" rx="0.3" />
+              {/* Fronds */}
+              <path d="M0,-1 Q-4,-2 -5,1 Q-3,-1 0,0 Z" fill="#1C4037" />
+              <path d="M0,-1 Q4,-2 5,1 Q3,-1 0,0 Z" fill="#1C4037" />
+              <path d="M0,-1 Q-3,-4 -2,-6 Q0,-3 0,0 Z" fill="#265448" />
+              <path d="M0,-1 Q3,-4 2,-6 Q0,-3 0,0 Z" fill="#265448" />
+              <path d="M0,-1 Q-4,-3 -4,-4 Q-1,-2 0,0 Z" fill="#3A7868" />
+              <path d="M0,-1 Q4,-3 4,-4 Q1,-2 0,0 Z" fill="#3A7868" />
+              <circle cx="0" cy="-1" r="0.4" fill="#5C4327" />
+            </g>
+          </g>
+        ))}
       </svg>
 
       {/* Region pins overlay */}
@@ -102,7 +147,7 @@ export default function MapMauritius({ regions = [], unlocked = new Set(), onReg
           <motion.button
             key={r.region_id}
             data-testid={`map-region-${r.region_id}`}
-            onClick={() => onRegionClick && onRegionClick(r)}
+            onClick={() => { playSelect(); onRegionClick && onRegionClick(r); }}
             initial={{ opacity: 0, scale: 0.6, y: -8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ delay: 0.2 + i * 0.1, duration: 0.4, ease: "backOut" }}
@@ -113,6 +158,17 @@ export default function MapMauritius({ regions = [], unlocked = new Set(), onReg
             title={r.name}
           >
             <div className="relative flex flex-col items-center gap-2">
+              {/* Fog-of-war pulse for locked pins */}
+              {!isUnlocked && (
+                <span
+                  aria-hidden
+                  className="absolute -inset-6 rounded-full pointer-events-none"
+                  style={{
+                    background: "radial-gradient(circle, rgba(16,46,37,0.55) 0%, rgba(16,46,37,0.25) 45%, transparent 75%)",
+                    animation: "fogPulse 4s ease-in-out infinite",
+                  }}
+                />
+              )}
               <div
                 className={`relative w-14 h-14 lg:w-16 lg:h-16 rounded-2xl flex items-center justify-center shadow-lift transition-transform border-4 ${
                   isUnlocked
@@ -136,6 +192,13 @@ export default function MapMauritius({ regions = [], unlocked = new Set(), onReg
           </motion.button>
         );
       })}
+
+      <style>{`
+        @keyframes mapSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes mapSpinR { from { transform: rotate(0deg); } to { transform: rotate(-360deg); } }
+        @keyframes palmSway { 0%,100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg); } }
+        @keyframes fogPulse { 0%,100% { opacity: 0.85; transform: scale(0.95); } 50% { opacity: 0.5; transform: scale(1.08); } }
+      `}</style>
     </div>
   );
 }

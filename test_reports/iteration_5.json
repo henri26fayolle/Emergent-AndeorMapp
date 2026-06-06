@@ -1,0 +1,38 @@
+{
+  "summary": "Iteration 5 (frontend-only polish) end-to-end verified on Chromium against the public preview URL. All four feature areas pass: (1) Soundscape — data-testid='hud-action-mute' present in the right HUD action stack, click flips Volume2 (lucide-volume2) ↔ VolumeX (lucide-volume-x), localStorage 'andeor.mute' toggles between '1'/'0' and persists across full page reload (verified: null → '1' → '1' after reload). window.AudioContext is available (true). No console errors from sound module on any tested gesture. (2) Animated map — /dashboard SVG contains the expected inline-style animation tokens: palmSway×6 (5 palm <g> entries + keyframe), mapSpin×3, mapSpinR×2, fogPulse×5 (4 locked pins + keyframe). Fog-of-war radial overlay (span[aria-hidden=true] with 'fogPulse' in inline style) is correctly present on ALL 4 LOCKED pins (black-river, south-wild, east-lagoons, central-culture) and CORRECTLY ABSENT on the unlocked map-region-north-coast for admin. (3) NPC chibi portraits — Clicking map-region-north-coast opens region-scene with data-testid='npc-portrait-naima' (inline-SVG chibi visible). Clicking the LOCKED map-region-south-wild also opens region-scene + npc-portrait-lea even though region-locked overlay is shown — confirms portrait renders regardless of unlock state. (4) Pokedex discovery feed — Registered TEST_iter5p_* via /api/auth/register and patched /api/me with avatar='scholar'+tutorial_completed=true. Visiting /badges shows data-testid='pokedex-feed' with exactly 5 rows (pokedex-row-card-blue-bay/le-pouce/creole-table/le-morne/sega), each citing its tour. Clicking 'pokedex-find-card-blue-bay' navigates to /tours?focus=t-snorkel-blue-bay and the focused QuestScroll is wrapped in a div with class 'ring-4 ring-sun-500 ring-offset-4 ring-offset-transparent rounded-3xl transition-all'. HUD nav still works post-sfx (journal/bag/vault/rank/ti-dodo/map all navigate correctly; map button verified after returning from /companion). /quests page renders my-bookings-panel cleanly. No JS pageerrors recorded during region-pin click → playSelect, region-back-btn click → playClick, or any HUD interaction.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "/dashboard locked pins", "issues": ["Fog-of-war pulse is visually subtle at 1920×1080 because it sits under the pin's drop-shadow; intent of 'hiding territory' works but could be amplified by enlarging the radial radius from -inset-6 to -inset-8 or adding a soft blur (filter: blur(1px))."]},
+      {"screen": "/badges Pokedex feed", "issues": ["The 'Find quest' button uses default styling — consider tinting it sun-500 to mirror the focus ring color so the user has a visual cue connecting the action to the highlighted target on /tours."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_andeor_api.py",
+    "/app/backend/tests/test_iteration2_prologue.py",
+    "/app/backend/tests/test_iteration3_checkin.py",
+    "/app/test_reports/pytest/iter4_results.xml"
+  ],
+  "action_items": [
+    "(Optional) Iteration 5 is fully shippable. Consider the two minor design tweaks above (fog radius/blur amplification, sun-500 tint on Find-quest CTA) if polish budget remains."
+  ],
+  "critical_code_review_comments": [
+    "lib/sound.js wraps AudioContext creation in try/catch via ensureCtx and never throws if AC is unavailable — safe for SSR/Safari quirks. Good.",
+    "Dashboard.jsx attaches startAmbient to the first pointerdown/keydown gesture and removes listeners on success/unmount — correct autoplay-policy handling. stopAmbient on unmount prevents the noise+LFO oscillator leak when leaving /dashboard. Good.",
+    "MapMauritius.jsx inlines the keyframes (mapSpin/mapSpinR/palmSway/fogPulse) inside a <style> tag rendered alongside the SVG — fine for one-off animations, but if MapMauritius is mounted in multiple places simultaneously you'd duplicate the @keyframes blocks. Currently mounted only on /dashboard so safe.",
+    "RegionScene.jsx renders the NpcPortrait wrapper as hidden sm:block — on small (<640px) viewports the portrait is hidden, but the data-testid still sits on the wrapper div, which on mobile won't have a 'displayed' SVG inside. Not blocking; just be aware mobile tests can't assert visibility, only attachment.",
+    "RpgHud.jsx subscribe(setMuted) returns an unsubscribe function — useEffect cleanup correctly applied. Good.",
+    "Badges.jsx Pokedex feed conditionally renders when ownedCards.size < TOTAL_CARDS (5). Not exercised end-to-end because we couldn't easily get a 5/5 player, but the JSX guard `{ownedCards.size < TOTAL_CARDS && ( ... pokedex-feed ... )}` is clean.",
+    "Tours.jsx uses useSearchParams + scrollIntoView({behavior:'smooth', block:'center'}) inside a 250ms setTimeout to wait for the grid to mount — works in practice; could also use a layoutEffect+ref, but current solution is robust enough."
+  ],
+  "updated_files": [],
+  "success_rate": { "backend": "n/a (no backend changes in iter5; not re-run)", "frontend": "100% of iter5 features tested" },
+  "test_credentials": "Admin: admin@andeor.mu / AnDeor2026!. Iter5 ephemeral test player: TEST_iter5p_<ts>@example.com / explore123 (registered via API, avatar patched to 'scholar', tutorial_completed=true).",
+  "seed_data_creation": "Two ephemeral test players created (TEST_iter5_* during a discarded earlier prologue probe; TEST_iter5p_* used for the actual Pokedex test). No cleanup required.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Iteration 5 introduced ZERO backend changes. New testids: hud-action-mute (RpgHud), npc-portrait-{naima|akil|lea|sanjay|marie} (RegionScene), pokedex-feed/pokedex-row-{card_id}/pokedex-find-{card_id} (Badges). The Tours focus param is /tours?focus=<tour_id> and wraps the targeted QuestScroll in a div with class 'ring-4 ring-sun-500 ring-offset-4 ring-offset-transparent rounded-3xl transition-all'. CSS keyframes (mapSpin/mapSpinR/palmSway/fogPulse) are inline <style> blocks inside MapMauritius.jsx — they appear in the rendered HTML and can be regex-asserted. AudioContext is created lazily on first user gesture (browser autoplay policy); do not assert audio output, only DOM/state side effects. To bypass prologue when registering a fresh player programmatically, POST /api/auth/register (sets the access_token httpOnly cookie) then PATCH /api/me {avatar:'scholar', tutorial_completed:true}.",
+  "rca_of_the_issue": "No bugs to RCA. Earlier transient TEST 7 ElementHandle-not-attached failure was a test-script artefact (re-using a stale handle after a SPA route change), not a product defect — re-verified ti-dodo and map nav independently both work."
+}

@@ -3,17 +3,19 @@ import { motion, AnimatePresence } from "framer-motion";
 import { api, formatErr } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import QuestScroll from "@/components/QuestScroll";
+import NpcPortrait from "@/components/NpcPortrait";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { ChevronLeft, Lock, ChevronRight, MapPin } from "lucide-react";
 import { toast } from "sonner";
+import { playOpenScene, playSelect, playClick } from "@/lib/sound";
 
 const NPC = {
-  "north-coast":     { name: "Naïma",   role: "Sea Guide",        line: "Ki manyer, traveler? Grand Baie ena en tas zafer pou montrer ou. (Lots to show you.)", img: "https://images.pexels.com/photos/36731927/pexels-photo-36731927.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=900&w=1600" },
-  "black-river":     { name: "Akil",    role: "Trail Master",     line: "Bizin lev boner si ou anvi atak Le Pouce. (Be up early if you want Le Pouce.)",         img: "https://images.pexels.com/photos/8387277/pexels-photo-8387277.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=900&w=1600" },
-  "south-wild":      { name: "Léa",     role: "Wind Whisperer",   line: "Le Morne kone ar ou avan ou kone ar li. (The wind knows you first.)",                  img: "https://images.pexels.com/photos/7415730/pexels-photo-7415730.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=900&w=1600" },
-  "east-lagoons":    { name: "Sanjay",  role: "Reef Keeper",      line: "Blue Bay clair couma cristal. Vinn snorkel avek mwa. (Crystal clear. Come snorkel.)",  img: "https://images.pexels.com/photos/15018959/pexels-photo-15018959.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=900&w=1600" },
-  "central-culture": { name: "Marie",   role: "Heritage Keeper",  line: "Port Louis pa zis bazar — sa enn istwar. (Not just markets — a story.)",                img: "https://images.pexels.com/photos/32793278/pexels-photo-32793278.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=900&w=1600" },
+  "north-coast":     { id: "naima",  name: "Naïma",  role: "Sea Guide",       line: "Ki manyer, traveler? Grand Baie ena en tas zafer pou montrer ou. (Lots to show you.)", img: "https://images.pexels.com/photos/36731927/pexels-photo-36731927.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=900&w=1600" },
+  "black-river":     { id: "akil",   name: "Akil",   role: "Trail Master",    line: "Bizin lev boner si ou anvi atak Le Pouce. (Be up early if you want Le Pouce.)",         img: "https://images.pexels.com/photos/8387277/pexels-photo-8387277.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=900&w=1600" },
+  "south-wild":      { id: "lea",    name: "Léa",    role: "Wind Whisperer",  line: "Le Morne kone ar ou avan ou kone ar li. (The wind knows you first.)",                  img: "https://images.pexels.com/photos/7415730/pexels-photo-7415730.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=900&w=1600" },
+  "east-lagoons":    { id: "sanjay", name: "Sanjay", role: "Reef Keeper",     line: "Blue Bay clair couma cristal. Vinn snorkel avek mwa. (Crystal clear. Come snorkel.)",  img: "https://images.pexels.com/photos/15018959/pexels-photo-15018959.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=900&w=1600" },
+  "central-culture": { id: "marie",  name: "Marie",  role: "Heritage Keeper", line: "Port Louis pa zis bazar — sa enn istwar. (Not just markets — a story.)",                img: "https://images.pexels.com/photos/32793278/pexels-photo-32793278.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=900&w=1600" },
 };
 
 export default function RegionScene({ region, tours, unlocked, onClose }) {
@@ -23,10 +25,11 @@ export default function RegionScene({ region, tours, unlocked, onClose }) {
   const meta = NPC[region.region_id] || { name: "Guide", role: "Explorer", line: "Welcome.", img: "" };
   const regionTours = tours.filter((t) => t.region === region.region_id);
 
-  // Lock body scroll while open
+  // Lock body scroll while open + play open chime
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    playOpenScene();
     return () => { document.body.style.overflow = prev; };
   }, []);
 
@@ -35,6 +38,7 @@ export default function RegionScene({ region, tours, unlocked, onClose }) {
     setBusy(true);
     try {
       await api.post("/bookings", { tour_id: confirmTour.tour_id });
+      playSelect();
       toast.success(`Quest accepted: "${confirmTour.name}". Check in with the guide's PIN to claim XP.`);
       setConfirmTour(null);
       await refresh();
@@ -69,7 +73,7 @@ export default function RegionScene({ region, tours, unlocked, onClose }) {
       {/* Top: return-to-map */}
       <div className="absolute top-0 inset-x-0 z-10 p-5 lg:p-7 flex justify-between items-center">
         <button
-          onClick={onClose}
+          onClick={() => { playClick(); onClose(); }}
           data-testid="region-back-btn"
           className="inline-flex items-center gap-2 rounded-full bg-sand-100/90 backdrop-blur px-4 py-2 text-sm font-bold tracking-wider text-ink-900 hover:bg-white shadow-clay transition-colors"
         >
@@ -120,15 +124,24 @@ export default function RegionScene({ region, tours, unlocked, onClose }) {
         )}
       </div>
 
-      {/* Bottom: NPC dialog box (Pokemon-style) */}
+      {/* Bottom: NPC dialog box (Pokemon-style) with portrait */}
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.35, duration: 0.4 }}
-        className="absolute left-1/2 -translate-x-1/2 bottom-5 lg:bottom-8 z-10 w-[calc(100%-2rem)] max-w-3xl"
+        className="absolute left-1/2 -translate-x-1/2 bottom-5 lg:bottom-8 z-10 w-[calc(100%-2rem)] max-w-3xl flex items-end gap-3"
         data-testid="region-npc-dialog"
       >
-        <div className="bg-sand-100/95 backdrop-blur-xl border-4 border-jungle-700 rounded-3xl shadow-lift p-5 lg:p-6 relative">
+        <motion.div
+          initial={{ opacity: 0, x: -20, rotate: -4 }}
+          animate={{ opacity: 1, x: 0, rotate: 0 }}
+          transition={{ delay: 0.5, duration: 0.45, ease: "backOut" }}
+          className="hidden sm:block w-24 h-24 lg:w-28 lg:h-28 shrink-0 rounded-3xl overflow-hidden border-4 border-jungle-700 shadow-lift"
+          data-testid={`npc-portrait-${meta.id}`}
+        >
+          <NpcPortrait id={meta.id} className="w-full h-full" />
+        </motion.div>
+        <div className="bg-sand-100/95 backdrop-blur-xl border-4 border-jungle-700 rounded-3xl shadow-lift p-5 lg:p-6 relative flex-1">
           <div className="absolute -top-4 left-6 bg-jungle-700 text-sand-100 px-4 py-1 rounded-full font-display text-sm tracking-wider">
             {meta.name} · {meta.role}
           </div>

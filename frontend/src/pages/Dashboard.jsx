@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
@@ -6,6 +6,7 @@ import RpgHud from "@/components/RpgHud";
 import MapMauritius from "@/components/MapMauritius";
 import RegionScene from "@/components/RegionScene";
 import { Sparkles } from "lucide-react";
+import { startAmbient, stopAmbient, playUnlock } from "@/lib/sound";
 
 const WORLD_BG = "https://images.pexels.com/photos/36731927/pexels-photo-36731927.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=1080&w=1920";
 
@@ -17,6 +18,7 @@ export default function Dashboard() {
   const [bookings, setBookings] = useState([]);
   const [activeRegion, setActiveRegion] = useState(null);
   const [greetingDone, setGreetingDone] = useState(false);
+  const prevUnlockedRef = useRef(null);
 
   const load = async () => {
     const [p, r, t, b] = await Promise.all([
@@ -25,6 +27,13 @@ export default function Dashboard() {
       api.get("/tours"),
       api.get("/bookings"),
     ]);
+    const newUnlocked = new Set(p.data.regions_unlocked || []);
+    // If the unlocked set grew since last load, play the unlock chime
+    if (prevUnlockedRef.current) {
+      const grew = [...newUnlocked].some((id) => !prevUnlockedRef.current.has(id));
+      if (grew) playUnlock();
+    }
+    prevUnlockedRef.current = newUnlocked;
     setProfile(p.data); setRegions(r.data); setTours(t.data); setBookings(b.data);
   };
   useEffect(() => { load(); }, []);
@@ -33,6 +42,18 @@ export default function Dashboard() {
   useEffect(() => {
     const t = setTimeout(() => setGreetingDone(true), 5500);
     return () => clearTimeout(t);
+  }, []);
+
+  // Ambient ocean — start on first user gesture (browser autoplay policy)
+  useEffect(() => {
+    const onFirst = () => { startAmbient(); window.removeEventListener("pointerdown", onFirst); window.removeEventListener("keydown", onFirst); };
+    window.addEventListener("pointerdown", onFirst, { once: true });
+    window.addEventListener("keydown", onFirst, { once: true });
+    return () => {
+      window.removeEventListener("pointerdown", onFirst);
+      window.removeEventListener("keydown", onFirst);
+      stopAmbient();
+    };
   }, []);
 
   // Reload when scene closes (in case bookings/XP changed)

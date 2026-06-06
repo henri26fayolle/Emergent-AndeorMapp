@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Compass, CheckCircle2, Sparkles, KeyRound, ScrollText } from "lucide-react";
+import { playChime, playClick } from "@/lib/sound";
 
 export default function Quests() {
   const { refresh } = useAuth();
@@ -36,7 +37,10 @@ export default function Quests() {
     try {
       const { data } = await api.post("/bookings/checkin", { booking_id: checkInBooking.booking_id, pin });
       if (data.already) toast.info("Already checked in.");
-      else toast.success(`+${data.xp_gained} XP! Level ${data.new_level}. ${data.rewards_granted?.length ? `🎁 ${data.rewards_granted.length} reward(s) unlocked!` : ""}`);
+      else {
+        playChime();
+        toast.success(`+${data.xp_gained} XP! Level ${data.new_level}. ${data.rewards_granted?.length ? `🎁 ${data.rewards_granted.length} reward(s) unlocked!` : ""}`);
+      }
       setCheckInBooking(null);
       await refresh();
       await load();

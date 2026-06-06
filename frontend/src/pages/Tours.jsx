@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { api, formatErr } from "@/lib/api";
 import RpgHud from "@/components/RpgHud";
@@ -7,8 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Sparkles, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
+import { playSelect } from "@/lib/sound";
 
 export default function Tours() {
+  const [searchParams] = useSearchParams();
+  const focusTourId = searchParams.get("focus");
+  const focusRef = useRef(null);
   const [tours, setTours] = useState([]);
   const [regions, setRegions] = useState([]);
   const [filter, setFilter] = useState("all");
@@ -18,6 +23,13 @@ export default function Tours() {
   useEffect(() => {
     Promise.all([api.get("/tours"), api.get("/regions")]).then(([t, r]) => { setTours(t.data); setRegions(r.data); });
   }, []);
+
+  // Scroll the focused tour into view once data is loaded
+  useEffect(() => {
+    if (focusTourId && tours.length && focusRef.current) {
+      setTimeout(() => focusRef.current.scrollIntoView({ behavior: "smooth", block: "center" }), 250);
+    }
+  }, [focusTourId, tours]);
 
   const filtered = tours.filter((t) => filter === "all" || t.category === filter);
   const regionName = (id) => regions.find((r) => r.region_id === id)?.name || id;
@@ -64,9 +76,18 @@ export default function Tours() {
         </motion.header>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
-          {filtered.map((t) => (
-            <QuestScroll key={t.tour_id} tour={t} regionName={regionName(t.region)} onBegin={setSelected} />
-          ))}
+          {filtered.map((t) => {
+            const isFocused = t.tour_id === focusTourId;
+            return (
+              <div
+                key={t.tour_id}
+                ref={isFocused ? focusRef : null}
+                className={isFocused ? "ring-4 ring-sun-500 ring-offset-4 ring-offset-transparent rounded-3xl transition-all" : ""}
+              >
+                <QuestScroll tour={t} regionName={regionName(t.region)} onBegin={(tr) => { playSelect(); setSelected(tr); }} />
+              </div>
+            );
+          })}
         </div>
       </main>
 
