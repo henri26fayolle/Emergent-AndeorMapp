@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
-import { Waves, Mountain, Wind, Anchor, Landmark, Lock, MapPin, Plus, Minus, RotateCcw } from "lucide-react";
-import { TransformWrapper, TransformComponent, useControls } from "react-zoom-pan-pinch";
+import { Waves, Mountain, Wind, Anchor, Landmark, Lock, MapPin } from "lucide-react";
+import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 import { playSelect } from "@/lib/sound";
 
 const MAP_VIDEO = "/mauritius_map_loop.mp4";
@@ -32,7 +32,7 @@ export default function MapMauritius({ regions = [], unlocked = new Set(), onReg
         limitToBounds={true}
         centerOnInit={true}
       >
-        {({ zoomIn, zoomOut, resetTransform }) => (
+        {() => (
           <>
             <TransformComponent
               wrapperStyle={{ width: "100%", height: "100%" }}
@@ -216,34 +216,6 @@ export default function MapMauritius({ regions = [], unlocked = new Set(), onReg
         })}
               </div>
             </TransformComponent>
-
-            {/* Zoom controls — bottom-right */}
-            <div className="absolute bottom-6 right-6 z-30 flex flex-col gap-2" data-testid="map-zoom-controls">
-              <button
-                onClick={() => zoomIn()}
-                aria-label="Zoom in"
-                data-testid="map-zoom-in"
-                className="w-11 h-11 rounded-full bg-sand-100/95 backdrop-blur text-jungle-700 flex items-center justify-center shadow-lift hover:bg-white border-2 border-jungle-700 transition-colors"
-              >
-                <Plus className="w-5 h-5" />
-              </button>
-              <button
-                onClick={() => zoomOut()}
-                aria-label="Zoom out"
-                data-testid="map-zoom-out"
-                className="w-11 h-11 rounded-full bg-sand-100/95 backdrop-blur text-jungle-700 flex items-center justify-center shadow-lift hover:bg-white border-2 border-jungle-700 transition-colors"
-              >
-                <Minus className="w-5 h-5" />
-              </button>
-              <button
-                onClick={() => resetTransform()}
-                aria-label="Reset zoom"
-                data-testid="map-zoom-reset"
-                className="w-11 h-11 rounded-full bg-sand-100/95 backdrop-blur text-jungle-700 flex items-center justify-center shadow-lift hover:bg-white border-2 border-jungle-700 transition-colors"
-              >
-                <RotateCcw className="w-4 h-4" />
-              </button>
-            </div>
           </>
         )}
       </TransformWrapper>

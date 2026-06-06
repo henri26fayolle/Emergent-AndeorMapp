@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import {
-  ChevronLeft, MapPin, BookOpen, Utensils, Landmark, Church, Castle, Trophy, Sparkles, Plus, Minus, RotateCcw, ChefHat,
+  ChevronLeft, MapPin, BookOpen, Utensils, Landmark, Church, Castle, Trophy, Sparkles, ChefHat,
 } from "lucide-react";
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 import { playOpenScene, playSelect, playClick } from "@/lib/sound";
@@ -58,7 +58,7 @@ export default function PortLouisCityMap({ open, onClose, tours, focusedQuest, f
           limitToBounds={true}
           centerOnInit={true}
         >
-          {({ zoomIn, zoomOut, resetTransform }) => (
+          {() => (
             <>
               <TransformComponent
                 wrapperStyle={{ width: "100%", height: "100%" }}
@@ -180,18 +180,7 @@ export default function PortLouisCityMap({ open, onClose, tours, focusedQuest, f
                 </motion.div>
               )}
 
-              {/* Zoom controls — bottom-right */}
-              <div className="absolute bottom-6 right-6 z-30 flex flex-col gap-2" data-testid="pl-zoom-controls">
-                <button onClick={() => zoomIn()} aria-label="Zoom in" data-testid="pl-zoom-in" className="w-11 h-11 rounded-full bg-sand-100/95 backdrop-blur text-jungle-700 flex items-center justify-center shadow-lift hover:bg-white border-2 border-jungle-700 transition-colors">
-                  <Plus className="w-5 h-5" />
-                </button>
-                <button onClick={() => zoomOut()} aria-label="Zoom out" data-testid="pl-zoom-out" className="w-11 h-11 rounded-full bg-sand-100/95 backdrop-blur text-jungle-700 flex items-center justify-center shadow-lift hover:bg-white border-2 border-jungle-700 transition-colors">
-                  <Minus className="w-5 h-5" />
-                </button>
-                <button onClick={() => resetTransform()} aria-label="Reset zoom" data-testid="pl-zoom-reset" className="w-11 h-11 rounded-full bg-sand-100/95 backdrop-blur text-jungle-700 flex items-center justify-center shadow-lift hover:bg-white border-2 border-jungle-700 transition-colors">
-                  <RotateCcw className="w-4 h-4" />
-                </button>
-              </div>
+              {/* Zoom controls removed — wheel, double-click, and pinch-zoom still work */}
             </>
           )}
         </TransformWrapper>
