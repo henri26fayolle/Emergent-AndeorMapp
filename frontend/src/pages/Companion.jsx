@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { api, formatErr } from "@/lib/api";
-import Header from "@/components/Header";
+import RpgHud from "@/components/RpgHud";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,9 +47,10 @@ export default function Companion() {
   };
 
   return (
-    <div className="min-h-screen paper-bg">
-      <Header />
-      <main className="max-w-4xl mx-auto px-6 lg:px-10 py-10">
+    <div className="min-h-screen relative overflow-x-hidden bg-jungle-700">
+      <div className="absolute inset-0 paper-bg" />
+      <RpgHud />
+      <main className="relative max-w-4xl mx-auto px-6 lg:px-10 py-10 pb-44 pr-20">
         <div className="mb-8 flex items-center gap-4">
           <div className="w-14 h-14 rounded-3xl bg-jungle-500 text-white flex items-center justify-center shadow-lift">
             <Wind className="w-7 h-7" />

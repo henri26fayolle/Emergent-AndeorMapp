@@ -1,0 +1,44 @@
+{
+  "summary": "Iteration 4 testing complete for An Deor Quest RPG redesign. Backend: 53/54 pytest pass (1 pre-existing data-drift failure caused by previous testing changing admin avatar from 'scholar' to 'hiker' — NOT a code regression; iteration 4 has no backend changes). Frontend: full end-to-end verification of the new RPG UI on Chromium via Playwright. All requested testids exist and behave correctly: world-map, world-greeting (auto-fades), rpg-hud-bar (centered, with avatar/name/level/xp), rpg-hud-actions (right-floating menu) with hud-action-map/journal/bag/vault/rank/ti-dodo/logout/admin. All 5 map-region-* pins render (1 unlocked sunset pin + 4 locked dashed pins for a fresh player; admin sees north-coast unlocked). RegionScene overlay: region-scene/title/npc-dialog/back-btn all working — clicking 'north-coast' shows 'North Coast' title + Naïma's Creole dialog; clicking 'south-wild' shows region-locked overlay; region-back-btn closes the scene. Quest scroll booking: clicking scroll-begin-{id} opens region-book-dialog with 'Accept this quest?' title; region-book-confirm POSTs /api/bookings and shows toast 'Quest accepted: \"...\". Check in with the guide's PIN to claim XP.'. Avatar swap from HUD portrait: hud-avatar-portrait opens avatar-picker-dialog (9 options shown), saving updates HUD immediately. HUD navigation: hud-action-journal→/quests, bag→/badges, vault→/rewards, rank→/leaderboard, ti-dodo→/companion, map→/dashboard — RpgHud present on every gameplay page; no OLD top-nav Header on any of them (only semantic <motion.header> title sections remain). Tours page: scroll cards (10) with tours-filter-all/outdoor/culture filters working; 'Begin quest' opens book-dialog; book-cancel/book-confirm preserved. Quests page: my-bookings-panel and quest-row-* present; checkin-{bk_id} opens checkin-dialog; submitting PIN 'REEF42' for Blue Bay booking → POST /api/bookings/checkin → toast '+120 XP! Level 2. 1 reward(s) unlocked!' and HUD updates live to 120 XP/Lv 3; booking moves to 'Sealed'. Admin page: still uses old Header (intentional), admin-tab-bookings/tours/users all work; Guide PINs tab shows all 5 PINs (REEF42, RIDGE07, PIMENT9, WIND88, SEGA21).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "n/a", "issue": "Backend untouched in iter4. 1/54 pytest failure is purely test-data drift (admin avatar field mutated to 'hiker' during iter3 frontend tests). Either reset admin avatar to 'scholar' in seed, or loosen the assertion to check 'in ALLOWED_AVATARS'."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "/dashboard world map", "issues": ["The stylised SVG island sits on a translucent green disc that is rendered slightly larger than the painted Mauritius island shape, so the dashed reef ring is partially clipped by the disc edges at 1920x1080. Visually fine but the reef ring is more discoverable on taller viewports."]},
+      {"screen": "/dashboard HUD bar caption", "issues": ["Helper line 'TAP YOUR PORTRAIT TO CHANGE EXPLORER · RIGHT SIDE MENU TO TRAVEL' is white with text-shadow but contrast is borderline against the bright sky portion of the backdrop photo. Consider darkening with a subtle pill background."]},
+      {"screen": "/quests Active scrolls panel", "issues": ["Carry-over from iter3: kbd-styled 'tour'/'PIN' chips still wrap awkwardly on narrow widths; content is clear."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_andeor_api.py",
+    "/app/backend/tests/test_iteration2_prologue.py",
+    "/app/backend/tests/test_iteration3_checkin.py",
+    "/app/test_reports/pytest/iter4_results.xml"
+  ],
+  "action_items": [
+    "(Optional) Re-seed admin.avatar='scholar' on startup or relax the iter2 assertion so test_admin_has_avatar_and_tutorial_completed isn't sensitive to legit avatar swaps performed by previous UI tests.",
+    "(Optional) Strengthen contrast of the small white helper text under the bottom HUD bar — drop a 60% black pill behind it or move it inside the HUD container."
+  ],
+  "critical_code_review_comments": [
+    "RpgHud.jsx uses location.pathname.startsWith(a.to) for active state; '/badges' starts with '/badges' fine, but be aware /badges and /badge would both highlight 'bag' if a future route is added — minor.",
+    "Dashboard.jsx uses fixed inset-0 overflow-hidden; correctly prevents page scroll but means narrow heights (<700px) clip the bottom HUD's helper line. Acceptable on the target 1280+ desktop class.",
+    "RegionScene.jsx locks body scroll with useEffect — proper cleanup on unmount; good.",
+    "RpgHud bottom bar shows 'XP · X to Lv N+1' which is duplicated by the XP bar fill — fine, but could be visually simplified.",
+    "Header component is now only mounted on /admin per the design intent — verified by grep; no other pages import Header. No OLD top-nav residue on player pages.",
+    "Backend /api/bookings/checkin and /api/me PATCH paths verified still functional via Playwright e2e (REEF42 path produced expected toast and XP); no backend regressions detected for iter4."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "98% (53/54, 1 data-drift fail unrelated to iter4)", "frontend": "100% of tested RPG redesign flows (world map, region scene, quest booking, HUD nav, avatar swap, check-in toast, admin Guide PINs)"},
+  "test_credentials": "Admin: admin@andeor.mu / AnDeor2026!. PINs: REEF42 / RIDGE07 / PIMENT9 / WIND88 / SEGA21. Test players registered dynamically as TEST_iter4_*@example.com / explore123.",
+  "seed_data_creation": "Created 2 ephemeral test players (TEST_iter4_*, TEST_iter4b_*) via /api/auth/register and 1 Blue Bay booking that was checked-in to verify the XP/reward toast; no cleanup required.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Iteration 4 = frontend-only RPG redesign. Backend unchanged. All new testids in MapMauritius/RegionScene/QuestScroll/RpgHud verified present and wired up. The OLD Header.jsx is now only mounted on /admin — do not assume it on player pages. Tours/Quests/Badges/Rewards/Leaderboard/Companion all use RpgHud (right-side action stack + bottom portrait+XP bar). Booking confirm in region scene uses data-testid='region-book-confirm' (different from Tours page which still uses 'book-confirm'). On /quests, the check-in dialog submit button label is 'Claim rewards' (not 'Check'), so use page.locator('[data-testid=\"checkin-dialog\"] button:has-text(\"Claim rewards\")'). Avatar picker has 9 options (diver/hiker/foodie/dancer/surfer/scholar/+3 more). The world-greeting auto-fades after ~5.5s, so use Playwright auto-wait, not fixed timeouts.",
+  "rca_of_the_issue": "Backend test_admin_has_avatar_and_tutorial_completed failure RCA: previous iter3 UI test used the admin account to exercise the avatar picker dialog (Header → Change explorer → hiker → Save) and the change persisted to MongoDB. The iter2 assertion hard-codes 'scholar'. This is a test-data lifecycle issue, not a product bug. Fix options: (a) loosen the assertion to `assert u['avatar'] in ALLOWED_AVATARS`, (b) reset admin.avatar='scholar' in seed_admin on every backend start (currently the seed only patches password/role for an existing admin)."
+}
