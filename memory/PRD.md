@@ -27,6 +27,15 @@
 - AI travel companion "Ti Dodo".
 - Admin panel for tour-complete awarding.
 
+## What's been implemented (2026-02 / iteration 11 — CHARACTER AVATARS + HUD POLISH)
+- ✅ **5 character guide portraits** (Naïma · Akil · Léa · Sanjay · Marie) self-hosted at `/public/avatars/*.jpg`
+- ✅ Avatars now usable as **playable characters** (AvatarPickerDialog uses the JPGs with name + role + bio)
+- ✅ Same images render in the NPC dialog inside RegionScene (replaces the old SVG chibi portraits)
+- ✅ Legacy avatar IDs (diver/hiker/foodie/dancer/surfer/scholar) automatically remap to the new named guides
+- ✅ Floating Avatar HUD now shows the player's chosen JPG inside the circular bubble
+- ✅ Bottom-center info bar **removed** — XP bar lives under the avatar bubble instead, with more breathing room from viewport edges
+- ✅ Radial action ring fans cleanly along the avatar's circle (5 icons spanning a quarter-arc)
+
 ## What's been implemented (2026-02 / iteration 10 — UX OVERHAUL: open world, direct city entry, zoom, avatar HUD)
 - ✅ **All regions unlocked by default** — no more "sealed" gates anywhere. Backend backfills every existing user on startup
 - ✅ **Direct Port Louis entry** — tapping the Port Louis pin on the world map opens the city sub-map immediately (RegionScene bypassed for central-culture)

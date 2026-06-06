@@ -48,13 +48,18 @@ export default function AvatarPickerDialog({ open, onOpenChange }) {
                 whileTap={{ scale: 0.97 }}
                 onClick={() => setPicked(a.id)}
                 data-testid={`avatar-picker-${a.id}`}
-                className={`group text-left rounded-2xl p-4 border-2 transition-colors ${selected ? "border-sunset-500 bg-sand-100 shadow-clay" : "border-transparent bg-sand-100/60 hover:bg-sand-100"}`}
+                className={`group text-left rounded-2xl p-3 border-2 transition-colors ${selected ? "border-sunset-500 bg-sand-100 shadow-clay" : "border-transparent bg-sand-100/60 hover:bg-sand-100"}`}
               >
-                <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${a.gradient} text-white flex items-center justify-center mb-3`}>
-                  <Icon className="w-6 h-6" />
+                <div className={`relative w-full aspect-square rounded-2xl bg-gradient-to-br ${a.gradient} overflow-hidden mb-3 ring-2 ring-sand-100`}>
+                  {a.image ? (
+                    <img src={a.image} alt={a.name} className="absolute inset-0 w-full h-full object-cover" draggable={false} />
+                  ) : (
+                    <Icon className="w-10 h-10 text-white absolute inset-0 m-auto" />
+                  )}
                 </div>
                 <div className="font-display text-base">{a.name}</div>
-                <div className="text-xs text-ink-700 mt-1">{a.bio}</div>
+                <div className="text-[10px] tracking-[0.25em] uppercase text-ink-700 mt-0.5 font-bold">{a.role || ""}</div>
+                <div className="text-xs text-ink-700 mt-1 italic">{a.bio}</div>
                 {selected && <div className="mt-2 text-[10px] font-bold uppercase tracking-[0.2em] text-sunset-500">Selected</div>}
               </motion.button>
             );

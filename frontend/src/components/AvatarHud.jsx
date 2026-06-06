@@ -116,9 +116,18 @@ export default function AvatarHud({ profile, regions = [] }) {
           className={`relative w-20 h-20 rounded-full bg-gradient-to-br ${avatar.gradient || "from-jungle-600 to-jungle-700"} ring-4 ring-sand-100 shadow-lift flex items-center justify-center overflow-hidden text-sand-100`}
           aria-label="Open codex"
         >
-          <AvatarIcon className="w-9 h-9" />
+          {avatar.image ? (
+            <img
+              src={avatar.image}
+              alt={avatar.name || "Avatar"}
+              className="absolute inset-0 w-full h-full object-cover"
+              draggable={false}
+            />
+          ) : (
+            <AvatarIcon className="w-9 h-9" />
+          )}
           {/* Soft inner rim */}
-          <span aria-hidden className="absolute inset-0 rounded-full pointer-events-none" style={{ boxShadow: "inset 0 0 18px rgba(232,178,65,0.4)" }} />
+          <span aria-hidden className="absolute inset-0 rounded-full pointer-events-none" style={{ boxShadow: "inset 0 0 18px rgba(232,178,65,0.45)" }} />
           {/* Level badge */}
           <span className="absolute -bottom-1 -right-1 bg-sun-500 text-ink-900 rounded-full text-[11px] font-bold w-7 h-7 flex items-center justify-center shadow-clay border-[3px] border-sand-100" data-testid="avatar-hud-level">
             {level}
