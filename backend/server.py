@@ -23,6 +23,7 @@ import httpx
 from emergentintegrations.llm.chat import LlmChat, UserMessage
 
 from codex import build_router as build_codex_router, seed_lore
+from main_quests import build_router as build_main_quests_router, seed_main_quests
 
 # ---------- MongoDB ----------
 mongo_url = os.environ["MONGO_URL"]
@@ -271,6 +272,7 @@ async def startup():
     await seed_data()
     await seed_admin()
     await seed_lore(db)
+    await seed_main_quests(db)
     logger.info("An Deor backend ready.")
 
 
@@ -682,6 +684,10 @@ app.include_router(api)
 # Codex sub-router (lore, audio narration, GPX uploads/downloads)
 api_codex = build_codex_router(db, require_admin, get_current_user)
 app.include_router(api_codex, prefix="/api")
+
+# Main Quests router (thematic tour bundles)
+api_mq = build_main_quests_router(db, get_current_user)
+app.include_router(api_mq, prefix="/api")
 
 app.add_middleware(
     CORSMiddleware,

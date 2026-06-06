@@ -5,9 +5,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import QuestScroll from "@/components/QuestScroll";
 import NpcPortrait from "@/components/NpcPortrait";
 import RegionCodex from "@/components/RegionCodex";
+import PortLouisCityMap from "@/components/PortLouisCityMap";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { ChevronLeft, Lock, ChevronRight, MapPin } from "lucide-react";
+import { ChevronLeft, Lock, ChevronRight, MapPin, Building2 } from "lucide-react";
 import { toast } from "sonner";
 import { playOpenScene, playSelect, playClick } from "@/lib/sound";
 
@@ -19,12 +20,15 @@ const NPC = {
   "central-culture": { id: "marie",  name: "Marie",  role: "Heritage Keeper", line: "Port Louis pa zis bazar — sa enn istwar. (Not just markets — a story.)",                img: "https://images.pexels.com/photos/32793278/pexels-photo-32793278.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=900&w=1600" },
 };
 
-export default function RegionScene({ region, tours, unlocked, onClose }) {
+export default function RegionScene({ region, tours, unlocked, onClose, focusedQuest, focusedTourIds }) {
   const { refresh } = useAuth();
   const [confirmTour, setConfirmTour] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [showCity, setShowCity] = useState(false);
   const meta = NPC[region.region_id] || { name: "Guide", role: "Explorer", line: "Welcome.", img: "" };
-  const regionTours = tours.filter((t) => t.region === region.region_id);
+  // Hide sub-region (port-louis) tours from the main list — those live in the city map
+  const regionTours = tours.filter((t) => t.region === region.region_id && !t.subregion);
+  const hasCity = region.region_id === "central-culture" && tours.some((t) => t.subregion === "port-louis");
 
   // Lock body scroll while open + play open chime
   useEffect(() => {
@@ -125,6 +129,32 @@ export default function RegionScene({ region, tours, unlocked, onClose }) {
                 ))}
               </div>
             )}
+
+            {/* Enter Port Louis (city sub-map) — only for central-culture */}
+            {hasCity && (
+              <motion.button
+                onClick={() => { playSelect(); setShowCity(true); }}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                whileHover={{ y: -3 }}
+                data-testid="region-enter-port-louis"
+                className="block w-full mb-8 rounded-3xl bg-gradient-to-br from-sand-100 to-sand-200 border-4 border-jungle-700 shadow-lift p-5 lg:p-6 text-left relative overflow-hidden group"
+              >
+                <div className="flex items-center gap-4 lg:gap-6">
+                  <div className="w-14 h-14 lg:w-16 lg:h-16 rounded-2xl bg-jungle-700 text-sand-100 flex items-center justify-center shrink-0">
+                    <Building2 className="w-7 h-7 lg:w-8 lg:h-8" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-[10px] tracking-[0.3em] uppercase text-ink-700 font-bold">Sub-map</div>
+                    <div className="font-display text-xl lg:text-2xl italic text-ink-900">Enter Port Louis</div>
+                    <div className="text-sm text-ink-700 mt-0.5">{tours.filter((t) => t.subregion === "port-louis").length} venues — museums, food markets, the Citadelle, the Champ de Mars.</div>
+                  </div>
+                  <ChevronRight className="w-6 h-6 text-jungle-700 group-hover:translate-x-1 transition-transform" />
+                </div>
+              </motion.button>
+            )}
+
             <RegionCodex regionId={region.region_id} />
           </div>
         )}
@@ -179,6 +209,15 @@ export default function RegionScene({ region, tours, unlocked, onClose }) {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Port Louis sub-map */}
+      <PortLouisCityMap
+        open={showCity}
+        onClose={() => setShowCity(false)}
+        tours={tours}
+        focusedQuest={focusedQuest}
+        focusedTourIds={focusedTourIds}
+      />
     </motion.div>
   );
 }

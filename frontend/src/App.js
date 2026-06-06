@@ -14,6 +14,7 @@ import Rewards from "@/pages/Rewards";
 import Leaderboard from "@/pages/Leaderboard";
 import Companion from "@/pages/Companion";
 import Admin from "@/pages/Admin";
+import MainQuests from "@/pages/MainQuests";
 
 function AppRouter() {
   const location = useLocation();
@@ -27,6 +28,7 @@ function AppRouter() {
       <Route path="/onboarding" element={<Prologue />} />
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
       <Route path="/tours" element={<ProtectedRoute><Tours /></ProtectedRoute>} />
+      <Route path="/main-quests" element={<ProtectedRoute><MainQuests /></ProtectedRoute>} />
       <Route path="/quests" element={<ProtectedRoute><Quests /></ProtectedRoute>} />
       <Route path="/badges" element={<ProtectedRoute><Badges /></ProtectedRoute>} />
       <Route path="/rewards" element={<ProtectedRoute><Rewards /></ProtectedRoute>} />

@@ -14,16 +14,18 @@ export default function Dashboard() {
   const [regions, setRegions] = useState([]);
   const [tours, setTours] = useState([]);
   const [bookings, setBookings] = useState([]);
+  const [mainQuests, setMainQuests] = useState([]);
   const [activeRegion, setActiveRegion] = useState(null);
   const [greetingDone, setGreetingDone] = useState(false);
   const prevUnlockedRef = useRef(null);
 
   const load = async () => {
-    const [p, r, t, b] = await Promise.all([
+    const [p, r, t, b, mq] = await Promise.all([
       api.get("/me/profile"),
       api.get("/regions"),
       api.get("/tours"),
       api.get("/bookings"),
+      api.get("/main-quests").catch(() => ({ data: [] })),
     ]);
     const newUnlocked = new Set(p.data.regions_unlocked || []);
     // If the unlocked set grew since last load, play the unlock chime
@@ -33,6 +35,7 @@ export default function Dashboard() {
     }
     prevUnlockedRef.current = newUnlocked;
     setProfile(p.data); setRegions(r.data); setTours(t.data); setBookings(b.data);
+    setMainQuests(mq.data);
   };
   useEffect(() => { load(); }, []);
 
@@ -81,6 +84,22 @@ export default function Dashboard() {
 
   const unlocked = new Set(profile.regions_unlocked || []);
   const pendingBookings = bookings.filter((b) => b.status !== "completed");
+
+  // Focused Main Quest → which regions contain a tour from it (for golden glow)
+  const focused = mainQuests.find((q) => q.focused);
+  const focusedRegions = new Set();
+  const focusedRemainingByRegion = {};
+  if (focused) {
+    for (const tid of focused.tour_ids) {
+      const t = tours.find((tt) => tt.tour_id === tid);
+      if (!t) continue;
+      focusedRegions.add(t.region);
+      const done = focused.progress?.completed_tours?.includes(tid);
+      if (!done) {
+        focusedRemainingByRegion[t.region] = (focusedRemainingByRegion[t.region] || 0) + 1;
+      }
+    }
+  }
 
   return (
     <div className="fixed inset-0 overflow-hidden">
@@ -136,7 +155,14 @@ export default function Dashboard() {
             transition: "transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1)",
           }}
         >
-          <MapMauritius regions={regions} unlocked={unlocked} onRegionClick={setActiveRegion} />
+          <MapMauritius
+            regions={regions}
+            unlocked={unlocked}
+            onRegionClick={setActiveRegion}
+            focusedQuest={focused}
+            focusedRegions={focusedRegions}
+            focusedRemainingByRegion={focusedRemainingByRegion}
+          />
         </div>
       </div>
 
@@ -151,6 +177,8 @@ export default function Dashboard() {
             tours={tours}
             unlocked={unlocked.has(activeRegion.region_id)}
             onClose={closeRegion}
+            focusedQuest={focused}
+            focusedTourIds={new Set(focused?.tour_ids || [])}
           />
         )}
       </AnimatePresence>

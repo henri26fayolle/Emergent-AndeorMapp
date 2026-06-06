@@ -6,16 +6,17 @@ import AvatarPickerDialog from "@/components/AvatarPickerDialog";
 import { isMuted, toggleMuted, subscribe, playClick } from "@/lib/sound";
 import { useEffect, useState } from "react";
 import {
-  ScrollText, Sparkles, Layers, Gift, Trophy, ShieldCheck, LogOut, Map as MapIcon, MessageCircle, Volume2, VolumeX,
+  ScrollText, Sparkles, Layers, Gift, Trophy, ShieldCheck, LogOut, Map as MapIcon, MessageCircle, Volume2, VolumeX, Crown,
 } from "lucide-react";
 
 const ACTIONS = [
-  { id: "map",     to: "/dashboard",   label: "Map",     icon: MapIcon },
-  { id: "journal", to: "/quests",      label: "Journal", icon: ScrollText },
-  { id: "bag",     to: "/badges",      label: "Bag",     icon: Layers },
-  { id: "vault",   to: "/rewards",     label: "Vault",   icon: Gift },
-  { id: "rank",    to: "/leaderboard", label: "Rank",    icon: Trophy },
-  { id: "ti-dodo", to: "/companion",   label: "Ti Dodo", icon: MessageCircle },
+  { id: "map",     to: "/dashboard",   label: "Map",        icon: MapIcon },
+  { id: "saga",    to: "/main-quests", label: "Main Quests",icon: Crown },
+  { id: "journal", to: "/quests",      label: "Side Quests",icon: ScrollText },
+  { id: "bag",     to: "/badges",      label: "Bag",        icon: Layers },
+  { id: "vault",   to: "/rewards",     label: "Vault",      icon: Gift },
+  { id: "rank",    to: "/leaderboard", label: "Rank",       icon: Trophy },
+  { id: "ti-dodo", to: "/companion",   label: "Ti Dodo",    icon: MessageCircle },
 ];
 
 export default function RpgHud() {

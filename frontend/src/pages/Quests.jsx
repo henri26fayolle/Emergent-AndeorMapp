@@ -58,9 +58,9 @@ export default function Quests() {
 
       <main className="relative max-w-6xl mx-auto px-6 lg:px-10 py-10 lg:py-14 pb-44 pr-20">
         <motion.header initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-10">
-          <span className="chip"><ScrollText className="w-3 h-3" /> Adventurer's journal</span>
-          <h1 className="font-display text-4xl lg:text-5xl mt-3 italic">Your quests, your story</h1>
-          <p className="text-ink-700 mt-2 max-w-xl text-sm">Track active goals and check in with your guide's PIN to claim seals, cards & rewards.</p>
+          <span className="chip"><ScrollText className="w-3 h-3" /> Side quests</span>
+          <h1 className="font-display text-4xl lg:text-5xl mt-3 italic">Small feats, big bragging rights</h1>
+          <p className="text-ink-700 mt-2 max-w-xl text-sm">Side quests are bite-sized achievements that tick along while you adventure. For the long story-arcs, head to <strong>Main Quests</strong> on the left rail.</p>
         </motion.header>
 
         <div className="grid lg:grid-cols-12 gap-6">
