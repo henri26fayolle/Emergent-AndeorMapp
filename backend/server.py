@@ -24,6 +24,7 @@ from emergentintegrations.llm.chat import LlmChat, UserMessage
 
 from codex import build_router as build_codex_router, seed_lore
 from main_quests import build_router as build_main_quests_router, seed_main_quests
+from self_guided import build_router as build_self_guided_router, seed_self_guided
 
 # ---------- MongoDB ----------
 mongo_url = os.environ["MONGO_URL"]
@@ -273,6 +274,7 @@ async def startup():
     await seed_admin()
     await seed_lore(db)
     await seed_main_quests(db)
+    await seed_self_guided(db)
     # Open all regions for every player (no sealed regions in the An Deor world)
     all_region_ids = [r["region_id"] for r in REGIONS]
     await db.users.update_many({}, {"$set": {"regions_unlocked": all_region_ids}})
@@ -578,7 +580,7 @@ async def checkin_booking(payload: CheckInIn, user: dict = Depends(get_current_u
 async def my_profile(user: dict = Depends(get_current_user)):
     doc = await db.users.find_one({"user_id": user["user_id"]}, {"_id": 0, "password_hash": 0})
     bookings_count = await db.bookings.count_documents({"user_id": user["user_id"]})
-    return {**public_user(doc), "regions_unlocked": doc.get("regions_unlocked", []), "cards": doc.get("cards", []), "badges": doc.get("badges", []), "bookings_count": bookings_count}
+    return {**public_user(doc), "regions_unlocked": doc.get("regions_unlocked", []), "cards": doc.get("cards", []), "badges": doc.get("badges", []), "bookings_count": bookings_count, "active_self_guided": doc.get("active_self_guided"), "self_guided_progress": doc.get("self_guided_progress", {})}
 
 
 @api.get("/me/rewards")
@@ -691,6 +693,10 @@ app.include_router(api_codex, prefix="/api")
 # Main Quests router (thematic tour bundles)
 api_mq = build_main_quests_router(db, get_current_user)
 app.include_router(api_mq, prefix="/api")
+
+# Self-guided journeys router (free, multi-stop, GPX-exportable, GPS-checkin)
+api_sg = build_self_guided_router(db, get_current_user)
+app.include_router(api_sg, prefix="/api")
 
 app.add_middleware(
     CORSMiddleware,

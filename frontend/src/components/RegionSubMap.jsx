@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
-import { ChevronLeft, MapPin, Sparkles } from "lucide-react";
+import { ChevronLeft, MapPin, Sparkles, Footprints } from "lucide-react";
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 import { playOpenScene, playSelect, playClick } from "@/lib/sound";
 import VenueModal from "@/components/VenueModal";
 import AvatarHud from "@/components/AvatarHud";
+import SelfGuidedModal from "@/components/SelfGuidedModal";
+import { api } from "@/lib/api";
 
 /**
  * Reusable sub-map for any region with rich venue artwork.
@@ -41,6 +43,15 @@ export default function RegionSubMap({
 }) {
   const { refresh } = useAuth();
   const [openTourId, setOpenTourId] = useState(null);
+  const [journeys, setJourneys] = useState([]);
+  const [openJourneyId, setOpenJourneyId] = useState(null);
+
+  useEffect(() => {
+    if (!open) return;
+    api.get("/self-guided")
+      .then((r) => setJourneys((r.data || []).filter((j) => j.subregion === subregion)))
+      .catch(() => setJourneys([]));
+  }, [open, subregion]);
 
   useEffect(() => {
     if (!open) return;
@@ -158,6 +169,76 @@ export default function RegionSubMap({
                     </motion.button>
                   );
                 })}
+
+                {/* Self-guided journey overlay — dashed route line + free POI pins */}
+                {journeys.map((j) => {
+                  const themeJ = j.theme_hex || "#0F8FA8";
+                  const completed = new Set(j.progress?.completed_stops || []);
+                  const polyPoints = j.stops.map((s) => `${s.city_x ?? 50},${s.city_y ?? 50}`).join(" ");
+                  return (
+                    <div key={j.journey_id} className="absolute inset-0 pointer-events-none">
+                      {/* Dashed route line connecting stops */}
+                      <svg
+                        viewBox="0 0 100 100"
+                        preserveAspectRatio="none"
+                        className="absolute inset-0 w-full h-full"
+                        aria-hidden
+                      >
+                        <polyline
+                          points={polyPoints}
+                          fill="none"
+                          stroke={themeJ}
+                          strokeWidth="0.45"
+                          strokeDasharray="1.2 1"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          opacity="0.85"
+                        />
+                      </svg>
+                      {/* Free POI pins */}
+                      {j.stops.map((s, idx) => {
+                        const x = s.city_x ?? 50;
+                        const y = s.city_y ?? 50;
+                        const done = completed.has(s.stop_id);
+                        return (
+                          <motion.button
+                            key={s.stop_id}
+                            onClick={(e) => { e.stopPropagation(); playSelect(); setOpenJourneyId(j.journey_id); }}
+                            initial={{ opacity: 0, scale: 0.4 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: 0.45 + idx * 0.07, duration: 0.35, ease: "backOut" }}
+                            whileHover={{ scale: 1.18 }}
+                            whileTap={{ scale: 0.92 }}
+                            className="absolute -translate-x-1/2 -translate-y-1/2 group z-20 pointer-events-auto"
+                            style={{ left: `${x}%`, top: `${y}%` }}
+                            data-testid={`${testIdPrefix}-sg-stop-${s.stop_id}`}
+                            title={s.name}
+                          >
+                            {/* Tooltip */}
+                            <div className="absolute left-1/2 bottom-full mb-2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                              <div className="relative rounded-2xl shadow-lift px-3 py-1.5 whitespace-nowrap max-w-[16rem]" style={{ background: themeJ, color: "#FFF7E2" }}>
+                                <div className="font-display text-xs italic">{s.name}</div>
+                                <div className="text-[9px] tracking-[0.25em] uppercase opacity-85">{j.title} · stop {idx + 1}/{j.stops.length}</div>
+                              </div>
+                            </div>
+                            <div
+                              className="w-7 h-7 lg:w-8 lg:h-8 rounded-full flex items-center justify-center border-2 border-dashed bg-sand-100/95 backdrop-blur"
+                              style={{ borderColor: themeJ, boxShadow: done ? `0 0 0 2px ${themeJ}, 0 4px 10px rgba(0,0,0,0.3)` : "0 4px 10px rgba(0,0,0,0.25)" }}
+                            >
+                              <Footprints className="w-3.5 h-3.5" style={{ color: themeJ }} />
+                            </div>
+                            <div
+                              className="absolute left-1/2 -translate-x-1/2 -bottom-4 rounded-full px-1.5 py-0.5 text-[8.5px] tracking-[0.2em] uppercase font-bold whitespace-nowrap shadow-clay"
+                              style={{ background: themeJ, color: "#FFF7E2" }}
+                            >
+                              Free
+                            </div>
+                          </motion.button>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
               </TransformComponent>
 
               <div className="absolute top-0 inset-x-0 z-30 p-5 lg:p-7 flex justify-between items-start gap-3 pointer-events-none">
@@ -203,6 +284,14 @@ export default function RegionSubMap({
           isFocused={openTourId ? focusedTourIds?.has(openTourId) : false}
           onClose={() => setOpenTourId(null)}
           onBooked={() => refresh && refresh()}
+        />
+
+        {/* Self-guided journey modal — shown when a free POI pin is tapped */}
+        <SelfGuidedModal
+          open={!!openJourneyId}
+          journeyId={openJourneyId}
+          onClose={() => setOpenJourneyId(null)}
+          onActivated={() => { /* HUD watches active_self_guided via /me/profile */ refresh && refresh(); }}
         />
 
         <style>{`
