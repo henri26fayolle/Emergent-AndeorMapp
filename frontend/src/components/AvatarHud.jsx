@@ -36,7 +36,7 @@ export default function AvatarHud() {
 
   // Notification dot state — computed against a localStorage snapshot
   const [hasUnread, setHasUnread] = useState(false);
-  const [unreadBreakdown, setUnreadBreakdown] = useState({ badges: 0, rewards: 0, sagas: 0 });
+  const [unreadBreakdown, setUnreadBreakdown] = useState({ badges: 0, rewards: 0, sagas: 0, ready_saga_id: null });
 
   const refreshUnread = useCallback(async () => {
     if (!user) return;
@@ -48,7 +48,9 @@ export default function AvatarHud() {
       ]);
       const liveBadges  = (profileRes.data.cards || []).length + (profileRes.data.badges || []).length;
       const liveRewards = (rewardsRes.data || []).filter((r) => !r.redeemed).length;
-      const liveSagas   = (questsRes.data || []).filter((q) => q?.progress?.percent === 100 && !q.completed).length;
+      const readySagas  = (questsRes.data || []).filter((q) => q?.progress?.percent === 100 && !q.completed);
+      const liveSagas   = readySagas.length;
+      const readySagaId = readySagas[0]?.main_quest_id || null;
 
       // Snapshot default policy (deliberately asymmetric):
       //   • badges  → defaults to live count (so existing badges DON'T trigger a dot on first login)
@@ -59,7 +61,7 @@ export default function AvatarHud() {
       const newRewards = Math.max(0, liveRewards - (seen.rewards || 0));
       const newSagas   = Math.max(0, liveSagas   - (seen.sagas || 0));
       queueMicrotask(() => {
-        setUnreadBreakdown({ badges: newBadges, rewards: newRewards, sagas: newSagas });
+        setUnreadBreakdown({ badges: newBadges, rewards: newRewards, sagas: newSagas, ready_saga_id: readySagaId });
         setHasUnread(newBadges + newRewards + newSagas > 0);
       });
     } catch {
@@ -83,7 +85,7 @@ export default function AvatarHud() {
       });
       queueMicrotask(() => {
         setHasUnread(false);
-        setUnreadBreakdown({ badges: 0, rewards: 0, sagas: 0 });
+        setUnreadBreakdown({ badges: 0, rewards: 0, sagas: 0, ready_saga_id: null });
       });
     } catch { /* noop */ }
   }, [user]);

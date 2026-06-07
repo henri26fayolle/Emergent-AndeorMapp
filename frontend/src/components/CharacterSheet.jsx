@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Crown, Layers, ScrollText, Gift, Trophy, MessageCircle, LogOut, Volume2, VolumeX, ShieldCheck, User as UserIcon } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { findAvatar } from "@/lib/avatars";
 import { playClick, playChime, isMuted, toggleMuted, subscribe } from "@/lib/sound";
 import { useNavigate } from "react-router-dom";
+import { API_BASE } from "@/lib/api";
 import SagaConfetti from "@/components/SagaConfetti";
 import MainQuests from "@/pages/MainQuests";
 import Badges from "@/pages/Badges";
@@ -41,13 +42,15 @@ export default function CharacterSheet({ open, onClose, onChangeAvatar, unreadBr
   // Each time the sheet opens with a ready saga we bump this nonce so SagaConfetti
   // fires a fresh one-shot burst inside the Adventure tab.
   const [confettiTick, setConfettiTick] = useState(0);
+  // Hidden <audio> for the Ti Dodo Saga voice-line that chains onto the burst.
+  const sagaVoiceRef = useRef(null);
   useEffect(() => subscribe(setMuted), []);
 
   // Reset to default tab whenever the sheet is reopened
   useEffect(() => { if (open) queueMicrotask(() => setTab("adventure")); }, [open]);
 
-  // Fire confetti when the sheet opens AND the player has a saga ready to claim.
-  // Use the breakdown computed by AvatarHud — no extra API call here.
+  // Fire confetti + Ti Dodo voice-line when the sheet opens AND the player has a
+  // saga ready to claim. Use the breakdown computed by AvatarHud — no extra API call here.
   useEffect(() => {
     if (!open) return;
     if ((unreadBreakdown?.sagas || 0) > 0) {
@@ -55,9 +58,24 @@ export default function CharacterSheet({ open, onClose, onChangeAvatar, unreadBr
         setConfettiTick((n) => n + 1);
         // A celebratory chime cue to match the visual
         try { playChime(); } catch { /* noop */ }
+        // Chain the Ti Dodo voice-line (~3s) — respect the global mute toggle.
+        if (!isMuted()) {
+          const el = sagaVoiceRef.current;
+          if (el) {
+            const saga = unreadBreakdown?.ready_saga_id;
+            const url = saga
+              ? `${API_BASE}/codex/saga-voice?saga_id=${encodeURIComponent(saga)}`
+              : `${API_BASE}/codex/saga-voice`;
+            el.src = url;
+            el.currentTime = 0;
+            el.volume = 0.85;
+            const p = el.play();
+            if (p && typeof p.catch === "function") p.catch(() => { /* autoplay blocked */ });
+          }
+        }
       });
     }
-  }, [open, unreadBreakdown?.sagas]);
+  }, [open, unreadBreakdown?.sagas, unreadBreakdown?.ready_saga_id]);
 
   // Esc closes — stop propagation so a parent (e.g. RegionSubMap) doesn't also dismiss
   useEffect(() => {
@@ -93,6 +111,16 @@ export default function CharacterSheet({ open, onClose, onChangeAvatar, unreadBr
           className="fixed inset-0 z-[95] flex items-center justify-center p-3 sm:p-6"
           data-testid="character-sheet"
         >
+          {/* Hidden audio element used to chain the Ti Dodo Saga voice-line onto
+              the confetti burst when the player has a saga ready to claim. */}
+          <audio
+            ref={sagaVoiceRef}
+            preload="none"
+            data-testid="saga-voice-audio"
+            aria-hidden="true"
+            className="hidden"
+          />
+
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}

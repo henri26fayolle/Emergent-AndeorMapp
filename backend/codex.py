@@ -244,6 +244,22 @@ def _tour_audio_path(tour_id: str) -> Path:
     return AUDIO_DIR / f"tour__{_safe(tour_id)}.mp3"
 
 
+# One-line Ti Dodo voice clips played when a Saga (Main Quest) is claimed.
+# Cached as MP3 on disk — generated once per key.
+SAGA_VOICE_LINES = {
+    "mq-wayfarer": "Mo finn fyer ou — the ridges remember your steps now.",
+    "mq-cascade":  "Mo finn fyer ou — every river has whispered your name.",
+    "mq-heritage": "Mo finn fyer ou — you carry the island's memory now.",
+    "mq-compleat": "Mo finn fyer ou — Mauritius lives in your bones now.",
+    # Default / generic key when the frontend doesn't know which saga
+    "default":     "Mo finn fyer ou. Mauritius is in your bones now.",
+}
+
+
+def _saga_voice_path(key: str) -> Path:
+    return AUDIO_DIR / f"saga_voice__{_safe(key)}.mp3"
+
+
 def _gpx_path(tour_id: str, filename: str) -> Path:
     return GPX_DIR / f"{_safe(tour_id)}__{_safe(filename)}"
 
@@ -318,6 +334,35 @@ async def _ensure_tour_audio(tour: dict) -> str:
         raise HTTPException(502, f"Audio generation failed: {e}")
 
     return rel_url
+
+
+async def _ensure_saga_voice(key: str) -> Path:
+    """Generate (and cache) the Ti Dodo voice-line for a Saga claim. Returns the disk path."""
+    text = SAGA_VOICE_LINES.get(key) or SAGA_VOICE_LINES["default"]
+    target = _saga_voice_path(key)
+
+    if target.exists() and target.stat().st_size > 0:
+        return target
+
+    if not EMERGENT_LLM_KEY:
+        raise HTTPException(503, "TTS not configured")
+
+    try:
+        tts = OpenAITextToSpeech(api_key=EMERGENT_LLM_KEY)
+        audio_bytes = await tts.generate_speech(
+            text=text,
+            model=TTS_MODEL,
+            voice=TTS_VOICE,
+            response_format="mp3",
+            speed=0.95,
+        )
+        target.write_bytes(audio_bytes)
+        logger.info("Saga voice generated for %s (%d bytes)", key, len(audio_bytes))
+    except Exception as e:
+        logger.exception("Saga voice generation failed")
+        raise HTTPException(502, f"Audio generation failed: {e}")
+
+    return target
 
 
 # ---------- Router factory ----------
@@ -412,6 +457,22 @@ def build_router(db, require_admin, get_current_user) -> APIRouter:
             _tour_audio_path(tour_id),
             media_type="audio/mpeg",
             headers={"Cache-Control": "public, max-age=3600"},
+        )
+
+    @router.get("/saga-voice")
+    async def stream_saga_voice(saga_id: str | None = None):
+        """Public: stream a 3s Ti Dodo voice-line played during the SagaConfetti
+        burst when the player claims a Main Quest. Cached on disk, generated on
+        first call. `saga_id` (optional) picks the saga-specific phrase; omitting
+        it returns the generic "Mauritius is in your bones now." line."""
+        key = (saga_id or "").strip() if saga_id else "default"
+        if key not in SAGA_VOICE_LINES:
+            key = "default"
+        path = await _ensure_saga_voice(key)
+        return FileResponse(
+            path,
+            media_type="audio/mpeg",
+            headers={"Cache-Control": "public, max-age=86400"},
         )
 
     @router.get("/gpx/{tour_id}/{filename}")
