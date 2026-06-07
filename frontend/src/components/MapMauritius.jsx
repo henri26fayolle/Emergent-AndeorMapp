@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Waves, Mountain, Wind, Anchor, Landmark, Lock, MapPin, CloudSun } from "lucide-react";
+import { Waves, Mountain, Wind, Anchor, Landmark, Lock, MapPin, Info } from "lucide-react";
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 import { playSelect } from "@/lib/sound";
 
@@ -15,7 +15,7 @@ const POSITIONS = {
   "south-wild":      { x: 34, y: 71, name: "Le Morne",     icon: Wind,     teaser: "Kite sessions · Léa" },
 };
 
-export default function MapMauritius({ regions = [], unlocked = new Set(), onRegionClick, onMeteoClick, focusedQuest = null, focusedRegions = new Set(), focusedRemainingByRegion = {} }) {
+export default function MapMauritius({ regions = [], unlocked = new Set(), onRegionClick, onInfoCenterClick, focusedQuest = null, focusedRegions = new Set(), focusedRemainingByRegion = {} }) {
   return (
     <div
       className="absolute inset-0 overflow-hidden"
@@ -215,10 +215,10 @@ export default function MapMauritius({ regions = [], unlocked = new Set(), onReg
           );
         })}
 
-        {/* Vacoas Meteo Station pin — central plateau, taps open the weather + trail-status modal */}
+        {/* Vacoas Information Center pin — central plateau, taps open the multi-tab info modal */}
         <motion.button
-          data-testid="map-meteo-station"
-          onClick={() => { playSelect(); onMeteoClick && onMeteoClick(); }}
+          data-testid="map-info-center"
+          onClick={() => { playSelect(); onInfoCenterClick && onInfoCenterClick(); }}
           initial={{ opacity: 0, scale: 0.5, y: -10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ delay: 0.55, duration: 0.5, ease: "backOut" }}
@@ -226,16 +226,16 @@ export default function MapMauritius({ regions = [], unlocked = new Set(), onReg
           whileTap={{ scale: 0.94 }}
           className="absolute -translate-x-1/2 -translate-y-full group z-20"
           style={{ left: "47%", top: "48%" }}
-          title="Vacoas Meteo Station"
-          aria-label="Open Vacoas meteo station"
+          title="Vacoas Information Center"
+          aria-label="Open Vacoas information center"
         >
           <div
             className="absolute left-1/2 bottom-full mb-3 -translate-x-1/2 opacity-0 -translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 pointer-events-none"
-            data-testid="map-tooltip-meteo"
+            data-testid="map-tooltip-info-center"
           >
             <div className="relative bg-ocean-700 text-sand-100 rounded-2xl shadow-lift px-4 py-2 whitespace-nowrap">
-              <div className="font-display text-sm italic leading-tight">Meteo Station</div>
-              <div className="text-[10px] tracking-[0.2em] uppercase opacity-80 mt-0.5">Weather · Trail conditions</div>
+              <div className="font-display text-sm italic leading-tight">Information Center</div>
+              <div className="text-[10px] tracking-[0.2em] uppercase opacity-80 mt-0.5">Weather · Trails · More soon</div>
               <span className="absolute left-1/2 -bottom-1.5 -translate-x-1/2 w-3 h-3 bg-ocean-700 rotate-45" />
             </div>
           </div>
@@ -253,11 +253,11 @@ export default function MapMauritius({ regions = [], unlocked = new Set(), onReg
               className="relative w-11 h-11 lg:w-12 lg:h-12 rounded-full flex items-center justify-center shadow-lift border-[3px] bg-ocean-700 border-sand-100 text-sand-100"
               style={{ filter: "drop-shadow(0 6px 0 rgba(0,0,0,0.18))" }}
             >
-              <CloudSun className="w-5 h-5 lg:w-6 lg:h-6" />
+              <Info className="w-5 h-5 lg:w-6 lg:h-6" />
             </div>
             <span aria-hidden className="w-0.5 h-3 bg-ocean-700" />
             <div className="rounded-full px-3 py-1 text-[10px] font-bold tracking-[0.25em] uppercase whitespace-nowrap shadow-clay -mt-1 bg-sand-100 text-ocean-700">
-              Meteo
+              Info
             </div>
           </div>
         </motion.button>

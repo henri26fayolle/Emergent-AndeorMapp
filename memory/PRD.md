@@ -27,6 +27,13 @@
 - AI travel companion "Ti Dodo".
 - Admin panel for tour-complete awarding.
 
+## What's been implemented (2026-02 / iteration 21 — METEO STATION RE-FRAMED AS INFORMATION CENTER)
+- ✅ **`MeteoStation.jsx` → `InfoCenter.jsx`** — same modal, now a tabbed information hub designed to grow. The map pin label changed from "Meteo" to "Info" (lucide `Info` icon), the modal title is now "Live Mauritius travel intel" with eyebrow "Vacoas Information Center".
+- ✅ **Tab architecture** — currently one tab `Weather & Trails` (carrying all the iteration-20 functionality: current weather + 4-day forecast + 4 trail statuses). The `TABS` array at the top of `InfoCenter.jsx` is documented with future tab placeholders (Events & Holidays, Roads & Transport, Safety Advisories) so adding a new info module is a one-entry append.
+- ✅ **Lazy fetch** — the `/api/meteo/trails` API call only fires when the Weather tab is active; switching to a future tab won't waste the call.
+- ✅ **Testid migration** — old `meteo-*` testids replaced with `info-center-*` / `info-*` (e.g. `map-info-center`, `info-center-tab-weather`, `info-trail-le-morne-brabant`, `info-forecast-{date}`).
+- ✅ Backend untouched (still `/api/meteo/trails`); previous pytest suite at `/app/backend/tests/test_meteo.py` still passes; webpack compiled.
+
 ## What's been implemented (2026-02 / iteration 20 — VACOAS METEO STATION)
 - ✅ **New `meteo.py` backend** — `GET /api/meteo/trails` (public, no auth) returns:
   - `station` (Vacoas central-plateau coords)
