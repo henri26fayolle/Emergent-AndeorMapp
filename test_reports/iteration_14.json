@@ -1,0 +1,48 @@
+{
+  "summary": "Iteration 14 — Admin Polish (P3). Verified backend (21/21 pytest pass) and frontend admin UI for Tours/Rewards/Advisories CRUD, Bookings CSV export, Info Center advisory integration, and non-admin gating. All critical flows working.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter14_admin_polish.py",
+    "/app/test_reports/pytest/iter14_admin.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "AdminAdvisories.jsx line 49: destructures advisory_id/created_at/updated_at to satisfy lint — fine, but eslint-disable is unnecessary if those vars are used elsewhere. Cosmetic.",
+    "admin_extra.py delete_tour guard counts non-cancelled bookings, but bookings with status 'completed' will also block deletion. Probably intentional (preserve audit trail) but worth confirming with product. Consider allowing delete after completed-only bookings or providing a force flag.",
+    "admin_extra.py create_tour does not initialise created_at/updated_at fields — existing seeded tours may have them; new ones via admin UI won't, which could affect future sort/audit queries.",
+    "Frontend Admin.jsx loads bookings/users/tours in a single Promise.all on mount — fine for now, but with 20+ tours and growing bookings, this should later be paginated."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter14_admin_polish.py (new)"
+  ],
+  "success_rate": {"backend": "100% (21/21)", "frontend": "100% (all admin flows verified)"},
+  "test_credentials": "Admin: admin@andeor.mu / AnDeor2026! (from /app/memory/test_credentials.md)",
+  "seed_data_creation": "Tests create TEST_-prefixed users, test-* tours, test-ui-rwd-* rewards, and 'TEST UI Road M1' advisory; all are cleaned up by the test suite (except possibly the test-tour-* tour kept by the active-booking guard test — there is no booking-cancel API to clean it up).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Iter14 covered the Admin Polish P3 (Tours CRUD, Rewards CRUD, Road Advisories CRUD, Bookings CSV export, non-admin gating, Info Center transport advisory sync). Backend pytest file: /app/backend/tests/test_iter14_admin_polish.py — reusable as regression. Non-admin redirect from /admin to /login confirmed by clearing cookies (visiting /admin without auth lands at /login). One known leftover: the active-booking guard test leaves a `test-tour-*` doc + booking in MongoDB because no booking-cancel API exists; harmless but visible to admin UI. Suggest main agent add a booking-cancel endpoint or call db.bookings.delete during test teardown.",
+  "rca of the issue": "n/a — all green",
+  "verified_features": [
+    "Admin auth gate: 401/403 for anon & non-admin",
+    "POST/PATCH/DELETE /api/admin/tours including 409 duplicate + 409 active-booking guard",
+    "GET /api/admin/bookings/export.csv returns text/csv + attachment header with all 13 required columns and ≥1 row",
+    "POST/PATCH/DELETE /api/admin/rewards including 409 duplicate + 422 invalid type",
+    "POST/PATCH/DELETE /api/admin/road-advisories including 422 invalid status + updated_at refresh",
+    "Info Center sync: GET /api/info/transport (no auth) shows new advisory; gone after delete",
+    "Admin UI: 7 tabs render (bookings, tours, rewards, advisories, codex, gpx, users)",
+    "Export CSV button triggers download with filename andeor-bookings-YYYY-MM-DD.csv",
+    "AdminTours: New/Edit/Delete dialog works; tour_id input disabled when editing",
+    "AdminRewards: New/Edit/Delete dialog works",
+    "AdminAdvisories: New/Edit/Delete dialog works",
+    "Regression: 24 Force-award buttons still present on Bookings tab",
+    "Regression: Non-admin (no cookie) hitting /admin is redirected to /login"
+  ]
+}
