@@ -18,6 +18,7 @@ function haversineM(lat1, lon1, lat2, lon2) {
 
 function formatDistance(m) {
   if (m == null) return null;
+  if (m < 8) return "You are here";
   if (m < 1000) return `${Math.round(m / 5) * 5} m`;
   return `${(m / 1000).toFixed(1)} km`;
 }
@@ -122,7 +123,7 @@ export default function SelfGuidedPinPreview({
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); playClick(); onClose && onClose(); }}
-              className="absolute top-2.5 right-2.5 w-6 h-6 rounded-full bg-ink-900/10 hover:bg-ink-900/20 flex items-center justify-center transition-colors"
+              className="absolute top-2.5 right-2.5 w-6 h-6 rounded-full bg-ink-900/15 hover:bg-ink-900/30 flex items-center justify-center transition-colors"
               data-testid={`sg-pin-preview-close-${stop.stop_id}`}
               aria-label="Close"
             >
@@ -152,7 +153,11 @@ export default function SelfGuidedPinPreview({
                 {done ? (
                   <span className="font-bold" style={{ color: themeHex }}>Already checked in ✓</span>
                 ) : distance_label ? (
-                  <span><span className="font-bold">{distance_label}</span> from you</span>
+                  distance_label === "You are here" ? (
+                    <span className="font-bold" style={{ color: themeHex }}>You are here ⨀</span>
+                  ) : (
+                    <span><span className="font-bold">{distance_label}</span> from you</span>
+                  )
                 ) : (
                   <span className="italic opacity-80">Tap “Start” — GPS will guide you</span>
                 )}

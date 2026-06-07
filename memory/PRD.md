@@ -27,6 +27,14 @@
 - AI travel companion "Ti Dodo".
 - Admin panel for tour-complete awarding.
 
+## What's been implemented (2026-02 / iteration 15 — PER-PIN PREVIEW POPOVERS FOR SELF-GUIDED TRAILS)
+- ✅ **`SelfGuidedPinPreview.jsx`** — new compact, anchored popover (≤17rem wide) that appears when a player taps any free self-guided trail pin. Replaces the previous heavy `SelfGuidedModal`-on-every-click flow. Shows: stop name, "Free trail · stop N/M", journey title, **live distance** from the player (via a single `navigator.geolocation.getCurrentPosition()` fix with silent fallback), and two CTAs:
+  - **Primary** "Start from here" / "Resume here" / "Walked" — POSTs `/api/self-guided/{id}/start` (idempotent), shows toast, dispatches `andeor:self-guided-changed` → floating HUD activates.
+  - **Secondary** "Full" — opens the original full SelfGuidedModal for users who want the journey overview.
+- ✅ **Toggle / swap UX** — tapping the same pin twice closes the popover; tapping another pin instantly swaps to that pin's preview. Escape key + X button also close.
+- ✅ **Polish** — `<8m` distance displays "You are here ⨀" instead of "0 m"; close-X contrast bumped for sand background.
+- ✅ Verified end-to-end across all 3 sub-maps (Port Louis, North Coast, Le Morne) by testing agent v3 — 11/11 frontend cases pass on the public preview URL.
+
 ## What's been implemented (2026-02 / iteration 14 — TRAIL EPILOGUE CUTSCENE + CONTEXT-AWARE LORE AUDIO)
 - ✅ **Trail Epilogue Cutscene + Shareable Postcard** — when a player completes every stop of a self-guided journey, the backend's check-in returns a full `epilogue` payload (`title_earned`, `epilogue`, `stops[]`, theme colors). The frontend `SelfGuidedHud` dispatches `andeor:trail-completed`; the globally-mounted `TrailEpilogueWatcher` plays a 3-beat cinematic in `TrailEpilogue.jsx`:
   - Beat 1 — Ti Dodo farewell monologue (typewriter + auto-TTS, also playable via Listen button)
