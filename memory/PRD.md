@@ -27,6 +27,22 @@
 - AI travel companion "Ti Dodo".
 - Admin panel for tour-complete awarding.
 
+## What's been implemented (2026-02 / iteration 17 — UNIFIED CHARACTER SHEET, RIGHT-RAIL REMOVED)
+- ✅ **New `CharacterSheet.jsx`** — clicking the bottom-left avatar bubble now opens a single unified modal with 5 tabs:
+  - **Adventure** (default) — Main Quest + Bag (cards/badges) stacked
+  - **Side Quests** — embeds the Quests page
+  - **Rewards** — embeds the Treasure vault
+  - **Leaderboard** — embeds the Top Explorers
+  - **Ti Dodo** — embeds the AI Companion chat
+  Lazy-mounted: only the active tab's heavy child page is rendered (avoids fanning 5+ parallel API calls per session).
+  Sheet header carries the secondary tools (Change avatar / Admin / Mute / Sign out / Close) — visible at all viewport widths.
+  Escape key closes (capture-phase so a layered sub-map's Escape doesn't also fire).
+- ✅ **`AvatarHud.jsx` rewritten** — minimal bottom-left character card (bubble + name + level badge + XP bar). Owns its own CharacterSheet + AvatarPickerDialog, so it can be dropped anywhere (Dashboard, sub-maps) without state plumbing. Inner image and level badge get `pointer-events-none` so click handling is robust.
+- ✅ **Right-rail action stack removed** — the old `<motion.nav>` with 10 buttons (Map / Saga / Journal / Bag / Vault / Rank / Ti Dodo / Map / Admin / Mute / Logout) is gone. `RpgHud.jsx` is now a 24-line shell that mounts AvatarHud + EpilogueWatcher + TrailEpilogueWatcher + SelfGuidedHud.
+- ✅ **`HudPanels.jsx` deleted** — its 6 modal panels are now the CharacterSheet tabs.
+- ✅ **Dashboard cleanup** — removed the explicit `<AvatarHud .../>` mount (RpgHud handles it globally now), converted the welcome-ribbon auto-fade from a React state timer to a pure CSS animation so the strict `react-hooks/set-state-in-effect` lint stays happy.
+- ✅ Verified end-to-end by testing agent v3 — **9/9 frontend cases pass** (CS1–CS9), including sub-map overlay behaviour and self-guided-trail regression.
+
 ## What's been implemented (2026-02 / iteration 16 — CINEMATIC AUDIO + UPDATED PROLOGUE & HOW-TO-PLAY)
 - ✅ **Cinematic music now plays** — `MapCinematic.jsx` no longer hardcodes `muted`. Since the user has just clicked "Enter Mauritius" (a user gesture), we autoplay the `prologue_to_map.mp4` with sound (volume 0.7) and fall back to muted-autoplay if the browser refuses. Added a top-left **♪ Sound on / Mute** toggle so users can recover audio if the unmuted autoplay was blocked.
 - ✅ **Prologue dialogue expanded (5 → 6 beats)** — Ti Dodo now mentions both the booking path *and* the free trail path with him as the live narrator, and explicitly calls out cards / titles / real-world rewards / shareable postcards.

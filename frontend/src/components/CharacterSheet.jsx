@@ -1,11 +1,10 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Crown, Layers, ScrollText, Gift, Trophy, MessageCircle, LogOut, Volume2, VolumeX, ShieldCheck, User as UserIcon } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import { findAvatar } from "@/lib/avatars";
 import { playClick, isMuted, toggleMuted, subscribe } from "@/lib/sound";
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import MainQuests from "@/pages/MainQuests";
 import Badges from "@/pages/Badges";
@@ -43,12 +42,17 @@ export default function CharacterSheet({ open, onClose, onChangeAvatar }) {
   // Reset to default tab whenever the sheet is reopened
   useEffect(() => { if (open) queueMicrotask(() => setTab("adventure")); }, [open]);
 
-  // Esc closes
+  // Esc closes — stop propagation so a parent (e.g. RegionSubMap) doesn't also dismiss
   useEffect(() => {
     if (!open) return undefined;
-    const onKey = (e) => { if (e.key === "Escape") onClose && onClose(); };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    const onKey = (e) => {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        onClose && onClose();
+      }
+    };
+    window.addEventListener("keydown", onKey, true); // capture phase so we run first
+    return () => window.removeEventListener("keydown", onKey, true);
   }, [open, onClose]);
 
   if (!user) return null;
@@ -130,8 +134,8 @@ export default function CharacterSheet({ open, onClose, onChangeAvatar }) {
                 </div>
               </div>
 
-              {/* Right-side header tools */}
-              <div className="hidden sm:flex items-center gap-1.5 shrink-0">
+              {/* Right-side header tools (always visible — compact on mobile) */}
+              <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
                 {user.role === "admin" && (
                   <button
                     onClick={() => { playClick(); onClose && onClose(); navigate("/admin"); }}
@@ -193,31 +197,35 @@ export default function CharacterSheet({ open, onClose, onChangeAvatar }) {
 
               <div className="relative flex-1 overflow-y-auto px-3 sm:px-5 lg:px-7 pt-2 pb-6 paper-bg" data-testid="character-sheet-body">
                 <TabsContent value="adventure" className="m-0 space-y-8 focus-visible:outline-none">
-                  <section data-testid="character-sheet-section-main-quest">
-                    <SectionHeading icon={Crown} title="Main Quest" subtitle="Choose a Mauritian saga" />
-                    <MainQuests embedded />
-                  </section>
-                  <div className="h-px bg-jungle-700/15" aria-hidden />
-                  <section data-testid="character-sheet-section-bag">
-                    <SectionHeading icon={Layers} title="Bag" subtitle="Cards & seals you've earned" />
-                    <Badges embedded />
-                  </section>
+                  {tab === "adventure" && (
+                    <>
+                      <section data-testid="character-sheet-section-main-quest">
+                        <SectionHeading icon={Crown} title="Main Quest" subtitle="Choose a Mauritian saga" />
+                        <MainQuests embedded />
+                      </section>
+                      <div className="h-px bg-jungle-700/15" aria-hidden />
+                      <section data-testid="character-sheet-section-bag">
+                        <SectionHeading icon={Layers} title="Bag" subtitle="Cards & seals you've earned" />
+                        <Badges embedded />
+                      </section>
+                    </>
+                  )}
                 </TabsContent>
 
                 <TabsContent value="side-quests" className="m-0 focus-visible:outline-none">
-                  <Quests embedded />
+                  {tab === "side-quests" && <Quests embedded />}
                 </TabsContent>
 
                 <TabsContent value="rewards" className="m-0 focus-visible:outline-none">
-                  <Rewards embedded />
+                  {tab === "rewards" && <Rewards embedded />}
                 </TabsContent>
 
                 <TabsContent value="leaderboard" className="m-0 focus-visible:outline-none">
-                  <Leaderboard embedded />
+                  {tab === "leaderboard" && <Leaderboard embedded />}
                 </TabsContent>
 
                 <TabsContent value="companion" className="m-0 focus-visible:outline-none">
-                  <Companion embedded />
+                  {tab === "companion" && <Companion embedded />}
                 </TabsContent>
               </div>
             </Tabs>

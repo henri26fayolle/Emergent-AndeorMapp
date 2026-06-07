@@ -46,13 +46,13 @@ export default function AvatarHud() {
           className={`relative w-20 h-20 rounded-full bg-gradient-to-br ${meta?.gradient || "from-jungle-600 to-jungle-700"} ring-4 ring-sand-100 shadow-lift flex items-center justify-center overflow-hidden text-sand-100`}
         >
           {meta?.image ? (
-            <img src={meta.image} alt={meta.name || "Avatar"} className="absolute inset-0 w-full h-full object-cover" draggable={false} />
+            <img src={meta.image} alt={meta.name || "Avatar"} className="absolute inset-0 w-full h-full object-cover pointer-events-none" draggable={false} />
           ) : (
-            <AvatarIcon className="w-9 h-9" />
+            <AvatarIcon className="w-9 h-9 pointer-events-none" />
           )}
           <span aria-hidden className="absolute inset-0 rounded-full pointer-events-none" style={{ boxShadow: "inset 0 0 18px rgba(232,178,65,0.45)" }} />
           <span
-            className="absolute -bottom-1 -right-1 bg-sun-500 text-ink-900 rounded-full text-[11px] font-bold w-7 h-7 flex items-center justify-center shadow-clay border-[3px] border-sand-100"
+            className="absolute -bottom-1 -right-1 bg-sun-500 text-ink-900 rounded-full text-[11px] font-bold w-7 h-7 flex items-center justify-center shadow-clay border-[3px] border-sand-100 pointer-events-none"
             data-testid="avatar-hud-level"
           >
             {level}
