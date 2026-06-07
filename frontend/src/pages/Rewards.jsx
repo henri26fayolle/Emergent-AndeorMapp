@@ -15,7 +15,7 @@ export default function Rewards({ embedded = false }) {
   useEffect(() => { load(); }, []);
 
   const copy = async (code) => { try { await navigator.clipboard.writeText(code); toast.success(`Code copied: ${code}`); } catch { toast.error("Copy failed"); } };
-  const redeem = async (id) => { try { await api.post(`/me/rewards/${id}/redeem`); toast.success("Marked as redeemed"); load(); } catch (e) { toast.error(formatErr(e.response?.data?.detail) || e.message); } };
+  const redeem = async (id) => { try { await api.post(`/me/rewards/${id}/redeem`); toast.success("Marked as redeemed"); load(); window.dispatchEvent(new Event("andeor:notifications-refresh")); } catch (e) { toast.error(formatErr(e.response?.data?.detail) || e.message); } };
 
   const inner = (
     <main className={embedded ? "relative" : "relative max-w-5xl mx-auto px-6 lg:px-10 py-10 lg:py-14 pb-44 pr-20"}>

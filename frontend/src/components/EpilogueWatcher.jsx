@@ -18,6 +18,7 @@ export default function EpilogueWatcher() {
       const newly = data?.newly_completed || [];
       if (newly.length > 0) {
         setQueue((q) => [...q, ...newly]);
+        window.dispatchEvent(new Event("andeor:notifications-refresh"));
       }
     } catch {
       // Silent — no epilogue if endpoint fails.
@@ -33,8 +34,10 @@ export default function EpilogueWatcher() {
   // Drain the queue one cutscene at a time
   useEffect(() => {
     if (!current && queue.length > 0) {
-      setCurrent(queue[0]);
-      setQueue((q) => q.slice(1));
+      queueMicrotask(() => {
+        setCurrent(queue[0]);
+        setQueue((q) => q.slice(1));
+      });
     }
   }, [current, queue]);
 
