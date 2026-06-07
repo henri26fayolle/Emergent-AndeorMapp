@@ -27,11 +27,11 @@ import Companion from "@/pages/Companion";
  *   companion   — Ti Dodo chat
  */
 const TABS = [
-  { id: "adventure",   label: "Adventure",   icon: Crown },
-  { id: "side-quests", label: "Side Quests", icon: ScrollText },
-  { id: "rewards",     label: "Rewards",     icon: Gift },
-  { id: "leaderboard", label: "Leaderboard", icon: Trophy },
-  { id: "companion",   label: "Ti Dodo",     icon: MessageCircle },
+  { id: "adventure",   label: "Adventure", icon: Crown },
+  { id: "side-quests", label: "Side",      icon: ScrollText },
+  { id: "rewards",     label: "Rewards",   icon: Gift },
+  { id: "leaderboard", label: "Ranks",     icon: Trophy },
+  { id: "companion",   label: "Ti Dodo",   icon: MessageCircle },
 ];
 
 export default function CharacterSheet({ open, onClose, onChangeAvatar, unreadBreakdown }) {
@@ -161,21 +161,28 @@ export default function CharacterSheet({ open, onClose, onChangeAvatar, unreadBr
               </button>
 
               <div className="min-w-0 flex-1">
-                <div className="text-[10px] tracking-[0.35em] uppercase opacity-75 font-bold">An Deor · Explorer</div>
-                <h2 className="font-display text-xl lg:text-2xl italic truncate" data-testid="character-sheet-name">
+                <div className="text-[10px] tracking-[0.35em] uppercase opacity-75 font-bold text-sun-500">An Deor · Explorer</div>
+                <h2 className="font-display text-2xl lg:text-3xl italic truncate leading-tight" data-testid="character-sheet-name">
                   {user.name || "Traveler"}
                 </h2>
-                <div className="mt-1.5 h-1.5 max-w-[16rem] rounded-full bg-sand-100/15 overflow-hidden relative">
-                  <motion.div
-                    initial={false}
-                    animate={{ width: `${xpInLevel}%` }}
-                    transition={{ duration: 0.7, ease: "easeOut" }}
-                    className="absolute inset-y-0 left-0 bg-gradient-to-r from-sun-500 to-sunset-500 rounded-full"
-                  />
-                </div>
-                <div className="mt-0.5 flex gap-3 text-[9px] tracking-[0.25em] uppercase font-bold opacity-80 tabular-nums">
-                  <span>{xp} XP</span>
-                  <span>{xpToNext} to Lv {level + 1}</span>
+                <div className="mt-2 flex items-center gap-3">
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-sun-500 text-ink-900 text-[11px] font-bold tracking-wider shadow-clay shrink-0">
+                    LV {level}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="h-2.5 max-w-[18rem] rounded-full bg-sand-100/15 overflow-hidden relative">
+                      <motion.div
+                        initial={false}
+                        animate={{ width: `${xpInLevel}%` }}
+                        transition={{ duration: 0.7, ease: "easeOut" }}
+                        className="absolute inset-y-0 left-0 bg-gradient-to-r from-sun-500 to-sunset-500 rounded-full shadow-[0_0_10px_rgba(232,178,65,0.45)]"
+                      />
+                    </div>
+                    <div className="mt-1 flex justify-between gap-3 text-[9.5px] tracking-[0.25em] uppercase font-bold opacity-80 tabular-nums max-w-[18rem]">
+                      <span>{xp} / {level * 100} XP</span>
+                      <span>{xpToNext} to LV {level + 1}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -222,7 +229,7 @@ export default function CharacterSheet({ open, onClose, onChangeAvatar, unreadBr
             {/* Tabs */}
             <Tabs value={tab} onValueChange={(v) => { playClick(); setTab(v); }} className="flex-1 flex flex-col min-h-0">
               <TabsList
-                className="shrink-0 mx-4 sm:mx-6 mt-3 sm:mt-4 mb-1 sm:mb-2 bg-sand-200/70 p-1 rounded-2xl flex flex-wrap gap-1 h-auto justify-start"
+                className="shrink-0 mx-4 sm:mx-6 mt-4 sm:mt-5 mb-2 sm:mb-3 bg-sand-200/70 p-1.5 rounded-full flex flex-wrap gap-1 h-auto justify-start"
                 data-testid="character-sheet-tabs"
               >
                 {TABS.map((t) => {
@@ -232,7 +239,7 @@ export default function CharacterSheet({ open, onClose, onChangeAvatar, unreadBr
                       key={t.id}
                       value={t.id}
                       data-testid={`character-sheet-tab-${t.id}`}
-                      className="rounded-xl px-3 sm:px-4 py-1.5 text-xs sm:text-sm font-bold tracking-[0.12em] uppercase data-[state=active]:bg-jungle-700 data-[state=active]:text-sand-100 data-[state=active]:shadow-clay text-ink-700 hover:text-ink-900 transition-colors inline-flex items-center gap-1.5"
+                      className="rounded-full px-3.5 sm:px-4 py-1.5 text-xs sm:text-sm font-bold tracking-[0.08em] uppercase data-[state=active]:bg-sand-100 data-[state=active]:text-jungle-700 data-[state=active]:shadow-clay text-ink-700 hover:text-ink-900 transition-all inline-flex items-center gap-1.5"
                     >
                       <Icon className="w-3.5 h-3.5" /> {t.label}
                     </TabsTrigger>

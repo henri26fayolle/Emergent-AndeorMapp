@@ -96,17 +96,21 @@ export default function AvatarHud() {
     refreshUnread();
     const onFocus = () => refreshUnread();
     const onSignal = () => refreshUnread();
+    const onOpenSheet = () => { if (!sheetOpen) openSheet(); };
     window.addEventListener("focus", onFocus);
     window.addEventListener("andeor:notifications-refresh", onSignal);
     window.addEventListener("andeor:self-guided-changed",   onSignal);
     window.addEventListener("andeor:trail-completed",       onSignal);
+    window.addEventListener("andeor:open-character-sheet",  onOpenSheet);
     return () => {
       window.removeEventListener("focus", onFocus);
       window.removeEventListener("andeor:notifications-refresh", onSignal);
       window.removeEventListener("andeor:self-guided-changed",   onSignal);
       window.removeEventListener("andeor:trail-completed",       onSignal);
+      window.removeEventListener("andeor:open-character-sheet",  onOpenSheet);
     };
-  }, [user, refreshUnread]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, refreshUnread, sheetOpen]);
 
   const markSeenTimerRef = useRef(null);
 

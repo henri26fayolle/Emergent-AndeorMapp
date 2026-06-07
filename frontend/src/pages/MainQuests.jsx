@@ -81,7 +81,10 @@ export default function MainQuests({ embedded = false }) {
               {quests.map((q, i) => {
                 const Icon = ICON_MAP[q.icon] || Sparkles;
                 const theme = THEME[q.theme_color] || THEME.jungle;
-                const pct = q.progress?.percent || 0;
+                const total = q.progress?.total || 1;
+                const done  = q.progress?.completed || 0;
+                const segments = Array.from({ length: total }, (_, k) => k < done);
+                const isActive = !!q.focused && !q.completed;
                 return (
                   <motion.button
                     key={q.main_quest_id}
@@ -94,37 +97,52 @@ export default function MainQuests({ embedded = false }) {
                     data-testid={`mq-teaser-${q.main_quest_id}`}
                     className="group text-left"
                   >
-                    <Card className={`overflow-hidden border-4 ${q.focused ? "border-sun-500" : "border-sand-100"} shadow-lift relative`}>
-                      <div className={`relative px-5 py-5 bg-gradient-to-br ${theme.bg} text-sand-100`}>
+                    <Card className={`overflow-hidden border-4 ${isActive ? "border-sun-500" : "border-sand-100"} shadow-lift relative`}>
+                      <div className="relative px-5 py-5 bg-[#0E1B26] text-sand-100">
                         <div
                           aria-hidden
-                          className="absolute inset-0 opacity-15 pointer-events-none"
-                          style={{ backgroundImage: "radial-gradient(rgba(255,255,255,0.7) 1px, transparent 1px)", backgroundSize: "10px 10px" }}
+                          className="absolute inset-0 opacity-10 pointer-events-none"
+                          style={{ backgroundImage: "radial-gradient(rgba(255,255,255,0.5) 1px, transparent 1px)", backgroundSize: "12px 12px" }}
                         />
                         <div className="relative flex items-start gap-3.5">
-                          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ring-4 ring-sand-100/25 shrink-0 ${theme.chip}`}>
-                            <Icon className="w-6 h-6" />
+                          {/* Coloured icon tile */}
+                          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-clay ${theme.chip}`}>
+                            <Icon className="w-6 h-6" strokeWidth={2.25} />
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-1.5 flex-wrap">
                               <h2 className="font-display text-xl lg:text-2xl italic leading-tight">{q.title}</h2>
-                              {q.focused && (
-                                <Badge className="rounded-full bg-sun-500 text-ink-900 text-[10px] tracking-wider"><Star className="w-3 h-3 mr-0.5" />Focused</Badge>
+                              {isActive && (
+                                <Badge className="rounded-full bg-sun-500 text-ink-900 text-[10px] tracking-wider font-bold">
+                                  <Star className="w-3 h-3 mr-0.5" /> Active
+                                </Badge>
                               )}
                               {q.completed && (
-                                <Badge className="rounded-full bg-sand-100 text-jungle-700 text-[10px] tracking-wider"><Crown className="w-3 h-3 mr-0.5" />Done</Badge>
+                                <Badge className="rounded-full bg-sand-100 text-jungle-700 text-[10px] tracking-wider font-bold">
+                                  <Crown className="w-3 h-3 mr-0.5" /> Done
+                                </Badge>
                               )}
                             </div>
-                            <p className="opacity-90 italic text-xs lg:text-sm mt-0.5 line-clamp-1">{q.subtitle}</p>
-
-                            <div className="mt-3 flex items-center gap-2">
-                              <div className="flex-1 h-1.5 rounded-full bg-sand-100/15 overflow-hidden">
-                                <div className="h-full bg-sand-100 rounded-full transition-[width] duration-500" style={{ width: `${pct}%` }} />
-                              </div>
-                              <div className="text-[9.5px] tracking-[0.25em] uppercase font-bold opacity-80 tabular-nums">{q.progress.completed}/{q.progress.total}</div>
-                            </div>
+                            <p className="opacity-80 italic text-xs lg:text-sm mt-0.5 line-clamp-1">{q.subtitle}</p>
                           </div>
-                          <ChevronRight className="w-5 h-5 opacity-70 mt-1 group-hover:translate-x-1 transition-transform shrink-0" />
+                          <ChevronRight className="w-5 h-5 opacity-50 mt-1 group-hover:translate-x-1 transition-transform shrink-0" />
+                        </div>
+
+                        {/* Segmented progress bar */}
+                        <div className="mt-4 flex items-center gap-1.5" data-testid={`mq-teaser-progress-${q.main_quest_id}`}>
+                          {segments.map((on, k) => (
+                            <span
+                              key={k}
+                              className={`flex-1 h-1.5 rounded-full transition-colors duration-500 ${on ? theme.chip : "bg-white/10"}`}
+                            />
+                          ))}
+                        </div>
+
+                        <div className="mt-1.5 flex items-center justify-between text-[10px] tracking-[0.25em] uppercase font-bold opacity-70 tabular-nums">
+                          <span>{done}/{total} stops</span>
+                          {q.completed
+                            ? <span className="text-sun-500">Claim your spoils</span>
+                            : isActive ? <span className="text-sun-500">In progress</span> : <span>Tap to enrol</span>}
                         </div>
                       </div>
                     </Card>
