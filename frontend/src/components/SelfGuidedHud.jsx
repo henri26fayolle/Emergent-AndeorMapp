@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Footprints, Crosshair, Check, X, MapPin, Sparkles } from "lucide-react";
+import { Footprints, Crosshair, Check, X, MapPin, Sparkles, Volume2, VolumeX, Pause, Play, Headphones } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { api, formatErr } from "@/lib/api";
 import { toast } from "sonner";
@@ -35,7 +35,12 @@ export default function SelfGuidedHud() {
   const [pos, setPos] = useState(null);     // { lat, lon }
   const [unlockedStop, setUnlockedStop] = useState(null); // last revealed stop (after checkin)
   const [busy, setBusy] = useState(false);
+  // Hands-free audio mode — when ON the next stop auto-plays inside ~120 m
+  const [handsFree, setHandsFree] = useState(false);
+  const [playing, setPlaying] = useState(false);
   const watchIdRef = useRef(null);
+  const audioRef = useRef(null);
+  const autoplayedStopsRef = useRef(new Set()); // prevent re-playing the same stop in hands-free
 
   // Refresh journey from server (called on mount + after each checkin + on user change)
   const loadActive = useCallback(async () => {
@@ -76,6 +81,50 @@ export default function SelfGuidedHud() {
     };
   }, [journey]);
 
+  // Audio narration — `audioUrl` derives the streaming URL from journey.journey_id + stop_id.
+  // playStopAudio is memoised so the auto-play effect below only fires when truly needed.
+  const playStopAudio = useCallback(async (stop) => {
+    if (!journey || !stop) return;
+    const url = `${api.defaults.baseURL}/self-guided/${journey.journey_id}/stops/${stop.stop_id}/audio`;
+    try {
+      if (!audioRef.current) {
+        audioRef.current = new Audio();
+        audioRef.current.preload = "auto";
+        audioRef.current.addEventListener("play",  () => setPlaying(true));
+        audioRef.current.addEventListener("pause", () => setPlaying(false));
+        audioRef.current.addEventListener("ended", () => setPlaying(false));
+      }
+      if (audioRef.current.src !== url) audioRef.current.src = url;
+      await audioRef.current.play();
+    } catch {
+      /* autoplay denied — user must tap, the controls below still work */
+    }
+  }, [journey]);
+
+  // Hands-free auto-play: when GPS shows we're within 200 m of the next stop and we haven't
+  // played that stop yet in this trail session, fire the narration.
+  useEffect(() => {
+    if (!journey || journey.progress?.finished) return;
+    const completedSet = new Set(journey.progress?.completed_stops || []);
+    const nxt = journey.stops.find((s) => !completedSet.has(s.stop_id)) || journey.stops[journey.stops.length - 1];
+    if (!handsFree || !nxt || !pos) return;
+    const d = haversineM(pos.lat, pos.lon, nxt.lat, nxt.lon);
+    if (d > 200) return;
+    if (autoplayedStopsRef.current.has(nxt.stop_id)) return;
+    autoplayedStopsRef.current.add(nxt.stop_id);
+    playStopAudio(nxt);
+  }, [handsFree, journey, pos, playStopAudio]);
+
+  // Stop audio + reset autoplay log when the journey changes / finishes
+  useEffect(() => {
+    autoplayedStopsRef.current = new Set();
+    return () => {
+      if (audioRef.current) {
+        try { audioRef.current.pause(); } catch { /* noop */ }
+      }
+    };
+  }, [journey?.journey_id]);
+
   if (!journey || journey.progress?.finished) return null;
 
   const completed = new Set(journey.progress?.completed_stops || []);
@@ -85,6 +134,15 @@ export default function SelfGuidedHud() {
   const distanceM = pos && nextStop ? haversineM(pos.lat, pos.lon, nextStop.lat, nextStop.lon) : null;
   const gpsReady = distanceM != null;
   const closeEnough = gpsReady && distanceM <= 80; // 80 m radius
+
+  const togglePlay = async () => {
+    playClick();
+    if (audioRef.current && !audioRef.current.paused) {
+      audioRef.current.pause();
+      return;
+    }
+    await playStopAudio(nextStop);
+  };
 
   const checkIn = async (useGps) => {
     if (!nextStop) return;
@@ -98,6 +156,8 @@ export default function SelfGuidedHud() {
       } else {
         playUnlock();
         setUnlockedStop({ ...nextStop, gps_distance_m: data.gps_distance_m });
+        // Auto-play the just-unlocked stop's narration (#1 — audio reveal)
+        playStopAudio(nextStop);
         if (data.finished) {
           playChime();
           toast.success(`Journey complete! +${data.xp_gain} XP${data.badge_unlocked ? " · 🏅 free badge unlocked" : ""}`);
@@ -146,14 +206,25 @@ export default function SelfGuidedHud() {
               <Footprints className="w-4 h-4 shrink-0" />
               <div className="text-[10px] tracking-[0.3em] uppercase font-bold truncate">On the trail · {journey.title}</div>
             </div>
-            <button
-              onClick={stopJourney}
-              aria-label="Pause trail"
-              data-testid="self-guided-pause"
-              className="shrink-0 w-7 h-7 rounded-full bg-sand-100/15 hover:bg-sand-100/30 flex items-center justify-center transition-colors"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
+            <div className="flex items-center gap-1 shrink-0">
+              <button
+                onClick={() => { playClick(); setHandsFree((v) => !v); if (!handsFree) toast.info("Hands-free mode on — audio plays as you approach each stop"); }}
+                aria-label="Toggle hands-free mode"
+                data-testid="self-guided-handsfree"
+                title={handsFree ? "Hands-free ON — auto-plays narration near each stop" : "Turn on hands-free narration"}
+                className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors ${handsFree ? "bg-sand-100 text-jungle-700" : "bg-sand-100/15 hover:bg-sand-100/30"}`}
+              >
+                <Headphones className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={stopJourney}
+                aria-label="Pause trail"
+                data-testid="self-guided-pause"
+                className="w-7 h-7 rounded-full bg-sand-100/15 hover:bg-sand-100/30 flex items-center justify-center transition-colors"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
 
           {/* Body */}
@@ -209,6 +280,17 @@ export default function SelfGuidedHud() {
                 <Check className="w-4 h-4 mr-1" /> I&apos;m here
               </Button>
             </div>
+
+            {/* Listen toggle — preview narration on demand (works even before check-in) */}
+            <button
+              onClick={togglePlay}
+              data-testid="self-guided-listen"
+              className="mt-2 w-full inline-flex items-center justify-center gap-2 text-[11px] tracking-[0.25em] uppercase font-bold py-2 rounded-full border-2 border-dashed transition-colors"
+              style={{ borderColor: themeHex, color: themeHex }}
+            >
+              {playing ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+              {playing ? "Pause Ti Dodo" : (<>Preview Ti Dodo&apos;s tale</>)}
+            </button>
           </div>
         </div>
         </motion.div>
@@ -244,6 +326,31 @@ export default function SelfGuidedHud() {
               </div>
               <div className="p-5">
                 <p className="italic text-ink-900 leading-relaxed text-sm lg:text-base">&ldquo;{unlockedStop.lore}&rdquo;</p>
+
+                {/* Audio narration controls — auto-plays on mount thanks to checkIn */}
+                <div className="mt-4 flex items-center gap-2 text-xs text-ink-700">
+                  <button
+                    onClick={() => {
+                      if (audioRef.current && !audioRef.current.paused) {
+                        audioRef.current.pause();
+                      } else {
+                        playStopAudio(unlockedStop);
+                      }
+                    }}
+                    data-testid="self-guided-reveal-listen"
+                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full font-bold tracking-wider uppercase text-[11px] text-white"
+                    style={{ background: themeHex }}
+                  >
+                    {playing ? <Pause className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+                    {playing ? "Pause" : "Listen again"}
+                  </button>
+                  {playing && (
+                    <span className="inline-flex items-center gap-1 opacity-80 italic">
+                      Ti Dodo is narrating…
+                    </span>
+                  )}
+                </div>
+
                 <div className="mt-5 flex justify-end">
                   <Button onClick={() => setUnlockedStop(null)} data-testid="self-guided-reveal-close" className="rounded-full bg-jungle-700 hover:bg-jungle-600 text-sand-100 tracking-wider">
                     Continue on the trail

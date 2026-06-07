@@ -13,13 +13,24 @@ user earns XP and an optional badge.
 from __future__ import annotations
 
 import math
+import os
 import logging
+from pathlib import Path
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from typing import Optional
 
 logger = logging.getLogger("andeor.selfguided")
+
+# TTS — reuse the same cache directory + Emergent LLM key as the codex module.
+UPLOADS_DIR = Path(__file__).parent / "uploads"
+SG_AUDIO_DIR = UPLOADS_DIR / "audio"
+SG_AUDIO_DIR.mkdir(parents=True, exist_ok=True)
+EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
+TTS_VOICE = "fable"          # storytelling timbre — matches Ti Dodo
+TTS_MODEL = "tts-1-hd"
 
 # Real Mauritius coordinates (approximate but plausible — used for distance check & GPX).
 SELF_GUIDED = [
@@ -169,6 +180,44 @@ def _serialize(doc: dict) -> dict:
     return doc
 
 
+def _stop_audio_path(journey_id: str, stop_id: str) -> Path:
+    safe = f"sg__{journey_id}__{stop_id}.mp3".replace("/", "_")
+    return SG_AUDIO_DIR / safe
+
+
+async def _ensure_stop_audio(journey: dict, stop: dict) -> Path:
+    """Generate (and cache) Ti Dodo's narration for one stop. Returns the file path."""
+    target = _stop_audio_path(journey["journey_id"], stop["stop_id"])
+    if target.exists() and target.stat().st_size > 0:
+        return target
+    if not EMERGENT_LLM_KEY:
+        raise HTTPException(503, "TTS not configured")
+
+    # Compose the spoken script — short, vivid, mobile-friendly (~25 s).
+    script = f"{stop['name']}. {stop.get('lore', '')}"[:3500]
+    try:
+        # Imported lazily so the module loads cleanly even if integrations are missing.
+        from emergentintegrations.llm.openai import OpenAITextToSpeech  # type: ignore
+
+        tts = OpenAITextToSpeech(api_key=EMERGENT_LLM_KEY)
+        audio_bytes = await tts.generate_speech(
+            text=script,
+            model=TTS_MODEL,
+            voice=TTS_VOICE,
+            response_format="mp3",
+            speed=1.0,
+        )
+        target.write_bytes(audio_bytes)
+        logger.info("TTS audio generated for sg-stop %s/%s (%d bytes)",
+                    journey["journey_id"], stop["stop_id"], len(audio_bytes))
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("TTS sg-stop generation failed")
+        raise HTTPException(502, f"Audio generation failed: {e}")
+    return target
+
+
 def _journey_gpx(j: dict) -> str:
     """Build a GPX 1.1 file from a journey's stops (as both waypoints and a route)."""
     pts = []
@@ -244,6 +293,23 @@ def build_router(db, get_current_user) -> APIRouter:
             content=gpx,
             media_type="application/gpx+xml",
             headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
+
+    @router.get("/{journey_id}/stops/{stop_id}/audio")
+    async def stop_audio(journey_id: str, stop_id: str):
+        """Ti Dodo narrates the stop's lore — 25–40s MP3, cached on first request.
+        Public (no auth) so the browser `<audio>` element streams it cleanly."""
+        j = await db.self_guided.find_one({"journey_id": journey_id}, {"_id": 0})
+        if not j:
+            raise HTTPException(404, "Journey not found")
+        stop = next((s for s in j["stops"] if s["stop_id"] == stop_id), None)
+        if not stop:
+            raise HTTPException(404, "Stop not found")
+        path = await _ensure_stop_audio(j, stop)
+        return FileResponse(
+            path,
+            media_type="audio/mpeg",
+            headers={"Cache-Control": "public, max-age=86400"},
         )
 
     @router.post("/{journey_id}/start")
