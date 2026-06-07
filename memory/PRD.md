@@ -27,6 +27,11 @@
 - AI travel companion "Ti Dodo".
 - Admin panel for tour-complete awarding.
 
+## What's been implemented (2026-02 / iteration 19 — SAGA CONFETTI ON ADVENTURE TAB)
+- ✅ **`SagaConfetti.jsx`** — a zero-dep Framer Motion particle burst (36 particles, sand/sunset/jungle palette, mixed shapes: squares + circles + streamers). One-shot per `trigger` nonce, auto-cleans after ~2.2s, `pointer-events: none` so it never blocks the Claim button beneath it.
+- ✅ **Wired into CharacterSheet** — whenever the sheet opens AND the player has a saga at 100% waiting to be claimed (`unreadBreakdown.sagas > 0`), a celebratory burst fires inside the Adventure tab's Main Quest section + plays the `playChime()` cue. Doesn't fire for badges/rewards (kept rare and earned-feeling, per the brief).
+- ✅ **Data flow** — `AvatarHud` already computes `unreadBreakdown`; now it's passed through to `CharacterSheet` as a prop. No new API calls.
+
 ## What's been implemented (2026-02 / iteration 18 — NOTIFICATION DOT ON THE AVATAR BUBBLE)
 - ✅ **Pulsing red dot** on the bottom-left avatar bubble whenever there's something new to claim:
   - **New cards/badges** since the last sheet open

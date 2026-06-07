@@ -4,8 +4,9 @@ import { X, Crown, Layers, ScrollText, Gift, Trophy, MessageCircle, LogOut, Volu
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import { findAvatar } from "@/lib/avatars";
-import { playClick, isMuted, toggleMuted, subscribe } from "@/lib/sound";
+import { playClick, playChime, isMuted, toggleMuted, subscribe } from "@/lib/sound";
 import { useNavigate } from "react-router-dom";
+import SagaConfetti from "@/components/SagaConfetti";
 import MainQuests from "@/pages/MainQuests";
 import Badges from "@/pages/Badges";
 import Quests from "@/pages/Quests";
@@ -32,15 +33,31 @@ const TABS = [
   { id: "companion",   label: "Ti Dodo",     icon: MessageCircle },
 ];
 
-export default function CharacterSheet({ open, onClose, onChangeAvatar }) {
+export default function CharacterSheet({ open, onClose, onChangeAvatar, unreadBreakdown }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [tab, setTab] = useState("adventure");
   const [muted, setMuted] = useState(isMuted());
+  // Each time the sheet opens with a ready saga we bump this nonce so SagaConfetti
+  // fires a fresh one-shot burst inside the Adventure tab.
+  const [confettiTick, setConfettiTick] = useState(0);
   useEffect(() => subscribe(setMuted), []);
 
   // Reset to default tab whenever the sheet is reopened
   useEffect(() => { if (open) queueMicrotask(() => setTab("adventure")); }, [open]);
+
+  // Fire confetti when the sheet opens AND the player has a saga ready to claim.
+  // Use the breakdown computed by AvatarHud — no extra API call here.
+  useEffect(() => {
+    if (!open) return;
+    if ((unreadBreakdown?.sagas || 0) > 0) {
+      queueMicrotask(() => {
+        setConfettiTick((n) => n + 1);
+        // A celebratory chime cue to match the visual
+        try { playChime(); } catch { /* noop */ }
+      });
+    }
+  }, [open, unreadBreakdown?.sagas]);
 
   // Esc closes — stop propagation so a parent (e.g. RegionSubMap) doesn't also dismiss
   useEffect(() => {
@@ -199,9 +216,11 @@ export default function CharacterSheet({ open, onClose, onChangeAvatar }) {
                 <TabsContent value="adventure" className="m-0 space-y-8 focus-visible:outline-none">
                   {tab === "adventure" && (
                     <>
-                      <section data-testid="character-sheet-section-main-quest">
+                      <section data-testid="character-sheet-section-main-quest" className="relative">
                         <SectionHeading icon={Crown} title="Main Quest" subtitle="Choose a Mauritian saga" />
                         <MainQuests embedded />
+                        {/* Celebratory burst when the player has a saga ready to claim */}
+                        <SagaConfetti trigger={confettiTick} origin="top" />
                       </section>
                       <div className="h-px bg-jungle-700/15" aria-hidden />
                       <section data-testid="character-sheet-section-bag">

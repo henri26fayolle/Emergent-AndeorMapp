@@ -209,6 +209,7 @@ export default function AvatarHud() {
         open={sheetOpen}
         onClose={closeSheet}
         onChangeAvatar={() => { closeSheet(); setAvatarPickerOpen(true); }}
+        unreadBreakdown={unreadBreakdown}
       />
 
       <AvatarPickerDialog open={avatarPickerOpen} onOpenChange={setAvatarPickerOpen} />
