@@ -185,37 +185,49 @@ def _stop_audio_path(journey_id: str, stop_id: str) -> Path:
     return SG_AUDIO_DIR / safe
 
 
-async def _ensure_stop_audio(journey: dict, stop: dict) -> Path:
-    """Generate (and cache) Ti Dodo's narration for one stop. Returns the file path."""
-    target = _stop_audio_path(journey["journey_id"], stop["stop_id"])
+def _journey_intro_audio_path(journey_id: str) -> Path:
+    safe = f"sg__{journey_id}__intro.mp3".replace("/", "_")
+    return SG_AUDIO_DIR / safe
+
+
+async def _generate_tts(target: Path, script: str, label: str) -> Path:
     if target.exists() and target.stat().st_size > 0:
         return target
     if not EMERGENT_LLM_KEY:
         raise HTTPException(503, "TTS not configured")
-
-    # Compose the spoken script — short, vivid, mobile-friendly (~25 s).
-    script = f"{stop['name']}. {stop.get('lore', '')}"[:3500]
     try:
-        # Imported lazily so the module loads cleanly even if integrations are missing.
         from emergentintegrations.llm.openai import OpenAITextToSpeech  # type: ignore
 
         tts = OpenAITextToSpeech(api_key=EMERGENT_LLM_KEY)
         audio_bytes = await tts.generate_speech(
-            text=script,
+            text=script[:3500],
             model=TTS_MODEL,
             voice=TTS_VOICE,
             response_format="mp3",
             speed=1.0,
         )
         target.write_bytes(audio_bytes)
-        logger.info("TTS audio generated for sg-stop %s/%s (%d bytes)",
-                    journey["journey_id"], stop["stop_id"], len(audio_bytes))
+        logger.info("TTS audio generated for %s (%d bytes)", label, len(audio_bytes))
     except HTTPException:
         raise
     except Exception as e:
-        logger.exception("TTS sg-stop generation failed")
+        logger.exception("TTS generation failed for %s", label)
         raise HTTPException(502, f"Audio generation failed: {e}")
     return target
+
+
+async def _ensure_stop_audio(journey: dict, stop: dict) -> Path:
+    """Generate (and cache) Ti Dodo's narration for one stop. Returns the file path."""
+    target = _stop_audio_path(journey["journey_id"], stop["stop_id"])
+    script = f"{stop['name']}. {stop.get('lore', '')}"
+    return await _generate_tts(target, script, f"sg-stop {journey['journey_id']}/{stop['stop_id']}")
+
+
+async def _ensure_journey_intro_audio(journey: dict) -> Path:
+    """Generate (and cache) Ti Dodo's intro monologue for the journey."""
+    target = _journey_intro_audio_path(journey["journey_id"])
+    script = f"{journey['title']}. {journey.get('lore_intro', '')}"
+    return await _generate_tts(target, script, f"sg-intro {journey['journey_id']}")
 
 
 def _journey_gpx(j: dict) -> str:
@@ -306,6 +318,19 @@ def build_router(db, get_current_user) -> APIRouter:
         if not stop:
             raise HTTPException(404, "Stop not found")
         path = await _ensure_stop_audio(j, stop)
+        return FileResponse(
+            path,
+            media_type="audio/mpeg",
+            headers={"Cache-Control": "public, max-age=86400"},
+        )
+
+    @router.get("/{journey_id}/intro-audio")
+    async def journey_intro_audio(journey_id: str):
+        """Ti Dodo narrates the journey's intro monologue — sets the mood before the player starts."""
+        j = await db.self_guided.find_one({"journey_id": journey_id}, {"_id": 0})
+        if not j:
+            raise HTTPException(404, "Journey not found")
+        path = await _ensure_journey_intro_audio(j)
         return FileResponse(
             path,
             media_type="audio/mpeg",

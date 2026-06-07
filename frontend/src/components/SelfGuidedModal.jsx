@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Compass, Download, Play, MapPin, Check, Lock, Sparkles, Footprints } from "lucide-react";
+import { X, Compass, Download, Play, Pause, Volume2, MapPin, Check, Lock, Sparkles, Footprints } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { api, formatErr } from "@/lib/api";
@@ -17,6 +17,8 @@ const THEME = {
 export default function SelfGuidedModal({ open, journeyId, onClose, onActivated }) {
   const [j, setJ] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [introPlaying, setIntroPlaying] = useState(false);
+  const audioRef = useRef(null);
 
   // Defer state writes via queueMicrotask so they don't happen synchronously during the
   // effect run (satisfies react-hooks/set-state-in-effect).
@@ -26,6 +28,13 @@ export default function SelfGuidedModal({ open, journeyId, onClose, onActivated 
     api.get(`/self-guided/${journeyId}`).then((r) => setJ(r.data)).catch(() => { /* noop */ });
   }, [open, journeyId]);
 
+  // Stop intro audio whenever the modal closes or the journey changes
+  useEffect(() => {
+    if (!open && audioRef.current) {
+      try { audioRef.current.pause(); } catch { /* noop */ }
+    }
+  }, [open, journeyId]);
+
   if (!open) return null;
 
   const themeHex = THEME[j?.theme_color] || "#1B6F4B";
@@ -33,7 +42,34 @@ export default function SelfGuidedModal({ open, journeyId, onClose, onActivated 
   const finished = j?.progress?.finished;
   const started = j?.progress?.started;
 
+  const toggleIntro = async () => {
+    playClick();
+    if (!journeyId) return;
+    if (audioRef.current && !audioRef.current.paused) {
+      audioRef.current.pause();
+      return;
+    }
+    const url = `${api.defaults.baseURL}/self-guided/${journeyId}/intro-audio`;
+    try {
+      if (!audioRef.current) {
+        audioRef.current = new Audio();
+        audioRef.current.preload = "auto";
+        audioRef.current.addEventListener("play",  () => setIntroPlaying(true));
+        audioRef.current.addEventListener("pause", () => setIntroPlaying(false));
+        audioRef.current.addEventListener("ended", () => setIntroPlaying(false));
+      }
+      if (audioRef.current.src !== url) audioRef.current.src = url;
+      await audioRef.current.play();
+    } catch {
+      toast.error("Couldn't play narration");
+    }
+  };
+
   const start = async () => {
+    // Stop intro audio if it's still playing — the trail HUD takes over from here
+    if (audioRef.current && !audioRef.current.paused) {
+      try { audioRef.current.pause(); } catch { /* noop */ }
+    }
     setBusy(true);
     try {
       await api.post(`/self-guided/${journeyId}/start`);
@@ -123,9 +159,18 @@ export default function SelfGuidedModal({ open, journeyId, onClose, onActivated 
               <div className="text-center text-ink-700 py-8">Loading…</div>
             ) : (
               <>
-                <p className="italic text-ink-700 leading-relaxed text-sm lg:text-base mb-5">
+                <p className="italic text-ink-700 leading-relaxed text-sm lg:text-base mb-3">
                   &ldquo;{j.lore_intro}&rdquo;
                 </p>
+                <button
+                  onClick={toggleIntro}
+                  data-testid="self-guided-intro-listen"
+                  className="mb-5 inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] tracking-[0.25em] uppercase font-bold text-white shadow-clay transition-colors"
+                  style={{ background: themeHex }}
+                >
+                  {introPlaying ? <Pause className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+                  {introPlaying ? "Pause Ti Dodo" : "Hear Ti Dodo set the scene"}
+                </button>
 
                 {/* Progress strip */}
                 <div className="flex items-center gap-3 mb-5">
