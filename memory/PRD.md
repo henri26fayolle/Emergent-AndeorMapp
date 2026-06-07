@@ -27,6 +27,17 @@
 - AI travel companion "Ti Dodo".
 - Admin panel for tour-complete awarding.
 
+## What's been implemented (2026-02 / iteration 16 — CINEMATIC AUDIO + UPDATED PROLOGUE & HOW-TO-PLAY)
+- ✅ **Cinematic music now plays** — `MapCinematic.jsx` no longer hardcodes `muted`. Since the user has just clicked "Enter Mauritius" (a user gesture), we autoplay the `prologue_to_map.mp4` with sound (volume 0.7) and fall back to muted-autoplay if the browser refuses. Added a top-left **♪ Sound on / Mute** toggle so users can recover audio if the unmuted autoplay was blocked.
+- ✅ **Prologue dialogue expanded (5 → 6 beats)** — Ti Dodo now mentions both the booking path *and* the free trail path with him as the live narrator, and explicitly calls out cards / titles / real-world rewards / shareable postcards.
+- ✅ **How-to-play tutorial expanded (4 → 5 cards)** to reflect the evolved game:
+  1. **Travel the island** — book real outdoor & cultural tours from An Deor's marketplace
+  2. **Or walk a free trail** — GPS-guided self-guided journeys with Ti Dodo narrating live + shareable postcard at the end
+  3. **Quest & earn** — XP, region cards, badges, titles
+  4. **Chase the Sagas** — Main Quests for 50% bundle vouchers + partner goodies
+  5. **Climb the leaderboard** — Top Explorer of Mauritius
+- ✅ Refactored Prologue step numbers into named constants (`NAME_STEP`, `AVATAR_STEP`, `REGISTER_STEP`, `TUTORIAL_START`, `TUTORIAL_END`) so future tutorial/dialog growth no longer needs spelunking for literals.
+
 ## What's been implemented (2026-02 / iteration 15 — PER-PIN PREVIEW POPOVERS FOR SELF-GUIDED TRAILS)
 - ✅ **`SelfGuidedPinPreview.jsx`** — new compact, anchored popover (≤17rem wide) that appears when a player taps any free self-guided trail pin. Replaces the previous heavy `SelfGuidedModal`-on-every-click flow. Shows: stop name, "Free trail · stop N/M", journey title, **live distance** from the player (via a single `navigator.geolocation.getCurrentPosition()` fix with silent fallback), and two CTAs:
   - **Primary** "Start from here" / "Resume here" / "Walked" — POSTs `/api/self-guided/{id}/start` (idempotent), shows toast, dispatches `andeor:self-guided-changed` → floating HUD activates.

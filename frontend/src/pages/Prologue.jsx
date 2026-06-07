@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { ChevronRight, Map, Sparkles, Trophy, Gift, Compass } from "lucide-react";
+import { ChevronRight, Map, Sparkles, Trophy, Compass, Footprints } from "lucide-react";
 
 const BG = [
   "https://images.pexels.com/photos/7415730/pexels-photo-7415730.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=900&w=1600",
@@ -22,8 +22,7 @@ function useTypewriter(text, speed = 22, deps = []) {
   const [out, setOut] = useState("");
   const [done, setDone] = useState(false);
   useEffect(() => {
-    setOut("");
-    setDone(false);
+    queueMicrotask(() => { setOut(""); setDone(false); });
     let i = 0;
     const id = setInterval(() => {
       i++;
@@ -34,8 +33,7 @@ function useTypewriter(text, speed = 22, deps = []) {
       }
     }, speed);
     return () => clearInterval(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [text, ...deps]);
+  }, [text, speed, ...deps]);
   return { out, done, finish: () => setOut(text) };
 }
 
@@ -43,16 +41,25 @@ const DIALOG = [
   { speaker: "Ti Dodo", line: "Eh, bonzour, traveler... mo finn pe atann ou. (I've been waiting for you.)", bg: 0 },
   { speaker: "Ti Dodo", line: "Welcome to Mauritius — not the postcard. The real one. Lagoons, ridges, sega rhythm, Creole spice.", bg: 1 },
   { speaker: "Ti Dodo", line: "An Deor has charted this island into five regions. Each one is locked... until you earn the right to step in.", bg: 2 },
-  { speaker: "Ti Dodo", line: "Book real tours with our guides. Complete them. Collect rare island cards, level up, unlock rewards.", bg: 3 },
+  { speaker: "Ti Dodo", line: "Book a tour with one of our guides — or walk a free trail with me whispering the stories straight in your ear.", bg: 3 },
+  { speaker: "Ti Dodo", line: "Every step earns cards, titles and real-world rewards: tour discounts, partner goodies, shareable trail postcards.", bg: 1 },
   { speaker: "Ti Dodo", line: "But first, mo bizin koné ou nom. (I need to know your name.)", bg: 0 },
 ];
 
 const TUTORIAL = [
-  { icon: Map,      title: "Travel the island",    body: "Pick a tour from the marketplace. Each one is tied to a Mauritian region & guide.", color: "bg-jungle-500" },
-  { icon: Compass,  title: "Quest & earn",          body: "Complete the tour to claim XP, a region card, a badge — and sometimes a rare card.",   color: "bg-sunset-500" },
-  { icon: Gift,     title: "Unlock real rewards",   body: "XP unlocks codes for next-tour discounts and partner goodies (rhum, spa, food).",     color: "bg-sun-500" },
-  { icon: Trophy,   title: "Climb the leaderboard", body: "Become the Top Explorer of Mauritius. Mo le wer toi la-haut! (I want to see you up there!)", color: "bg-ocean-500" },
+  { icon: Map,        title: "Travel the island",       body: "Five regions to unlock. Book real outdoor & cultural tours from An Deor's marketplace — each one ties to a Mauritian region and a real local guide.",            color: "bg-jungle-500" },
+  { icon: Footprints, title: "Or walk a free trail",     body: "Tap a free pin on any region map. Your phone's GPS guides you stop-to-stop while Ti Dodo narrates the lore live (and you earn a shareable postcard at the end).", color: "bg-ocean-500" },
+  { icon: Compass,    title: "Quest & earn",             body: "Every tour and every trail awards XP, region cards, badges — and the rarest of all: titles that carry your reputation across the island.",                       color: "bg-sunset-500" },
+  { icon: Sparkles,   title: "Chase the Sagas",          body: "Main Quests are multi-tour sagas. Complete one and you claim a unique title, a 50% bundle voucher, plus partner goodies if the saga is rich enough.",            color: "bg-sun-500" },
+  { icon: Trophy,     title: "Climb the leaderboard",    body: "Become the Top Explorer of Mauritius. Mo le wer toi la-haut! (I want to see you up there!)",                                                                       color: "bg-jungle-700" },
 ];
+
+// Step layout (kept dynamic so we can grow DIALOG / TUTORIAL without combing for literals)
+const NAME_STEP      = DIALOG.length;
+const AVATAR_STEP    = NAME_STEP + 1;
+const REGISTER_STEP  = AVATAR_STEP + 1;
+const TUTORIAL_START = REGISTER_STEP + 1;
+const TUTORIAL_END   = TUTORIAL_START + TUTORIAL.length - 1;
 
 export default function Prologue() {
   const navigate = useNavigate();
@@ -71,15 +78,19 @@ export default function Prologue() {
   // If user already logged in and tutorial completed, send them home.
   useEffect(() => {
     if (finishingRef.current) return; // don't redirect mid-cinematic handoff
-    if (user && user.tutorial_completed) navigate("/dashboard", { replace: true });
-    else if (user && user.avatar) {
-      setName(user.name || "");
-      setAvatar(user.avatar);
-      setStep(8); // jump directly to tutorial
+    if (user && user.tutorial_completed) { navigate("/dashboard", { replace: true }); return; }
+    if (user && user.avatar) {
+      queueMicrotask(() => {
+        setName(user.name || "");
+        setAvatar(user.avatar);
+        setStep(TUTORIAL_START); // jump directly to tutorial
+      });
     } else if (user && !user.avatar) {
       // Google fresh user — prefill name, jump to name confirmation
-      setName(user.name || "");
-      setStep(5);
+      queueMicrotask(() => {
+        setName(user.name || "");
+        setStep(NAME_STEP);
+      });
     }
   }, [user, navigate]);
 
@@ -102,10 +113,9 @@ export default function Prologue() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDialog, done]);
 
-  const bgIndex = isDialog ? current.bg : step === 5 ? 1 : step === 6 ? 2 : step === 7 ? 3 : 0;
+  const bgIndex = isDialog ? current.bg : step === NAME_STEP ? 1 : step === AVATAR_STEP ? 2 : step === REGISTER_STEP ? 3 : 0;
 
   const submitRegister = async (e) => {
     e.preventDefault();
@@ -116,7 +126,7 @@ export default function Prologue() {
       // After register, persist avatar & tutorial pending
       await api.patch("/me", { avatar, tutorial_completed: false });
       await refresh();
-      setStep(8); // tutorial
+      setStep(TUTORIAL_START); // tutorial
       toast.success(`Welcome, ${name}!`);
     } catch (e) {
       setError(formatErr(e.response?.data?.detail) || e.message);
@@ -205,8 +215,8 @@ export default function Prologue() {
           </motion.button>
         )}
 
-        {/* Step 5: name input */}
-        {step === 5 && (
+        {/* Step NAME_STEP: name input */}
+        {step === NAME_STEP && (
           <motion.div
             key="scene-name"
             initial={{ opacity: 0, y: 24, scale: 0.96 }}
@@ -230,10 +240,10 @@ export default function Prologue() {
                 autoFocus
               />
               <div className="flex gap-3 justify-end">
-                <Button variant="outline" onClick={() => setStep(4)} className="rounded-full">Back</Button>
+                <Button variant="outline" onClick={() => setStep(DIALOG.length - 1)} className="rounded-full">Back</Button>
                 <Button
                   disabled={!name.trim()}
-                  onClick={() => setStep(6)}
+                  onClick={() => setStep(AVATAR_STEP)}
                   data-testid="prologue-name-next"
                   className="rounded-full bg-jungle-500 hover:bg-jungle-600 text-white"
                 >
@@ -244,8 +254,8 @@ export default function Prologue() {
           </motion.div>
         )}
 
-        {/* Step 6: avatar pick */}
-        {step === 6 && (
+        {/* Step AVATAR_STEP: avatar pick */}
+        {step === AVATAR_STEP && (
           <motion.div
             key="scene-avatar"
             initial={{ opacity: 0, y: 24, scale: 0.96 }}
@@ -257,7 +267,7 @@ export default function Prologue() {
             <div className="bg-sand-100/95 border-4 border-jungle-700 rounded-3xl shadow-lift p-8">
               <div className="font-display text-xs tracking-[0.3em] uppercase text-sunset-500 mb-2">Step 2 of 3</div>
               <h2 className="font-display text-3xl mb-2">Choose your starter explorer</h2>
-              <p className="text-ink-700 mb-6 text-sm">Don't stress — you can always swap later.</p>
+              <p className="text-ink-700 mb-6 text-sm">Don&rsquo;t stress — you can always swap later.</p>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 {AVATARS.map((a, i) => {
                   const Icon = a.icon;
@@ -285,7 +295,7 @@ export default function Prologue() {
                 })}
               </div>
               <div className="flex gap-3 justify-end mt-6">
-                <Button variant="outline" onClick={() => setStep(5)} className="rounded-full">Back</Button>
+                <Button variant="outline" onClick={() => setStep(NAME_STEP)} className="rounded-full">Back</Button>
                 <Button
                   disabled={!avatar}
                   onClick={async () => {
@@ -294,12 +304,12 @@ export default function Prologue() {
                       try {
                         await api.patch("/me", { name: name || user.name, avatar });
                         await refresh();
-                        setStep(8);
+                        setStep(TUTORIAL_START);
                       } catch (e) {
                         toast.error(formatErr(e.response?.data?.detail) || e.message);
                       }
                     } else {
-                      setStep(7);
+                      setStep(REGISTER_STEP);
                     }
                   }}
                   data-testid="prologue-avatar-next"
@@ -312,8 +322,8 @@ export default function Prologue() {
           </motion.div>
         )}
 
-        {/* Step 7: register */}
-        {step === 7 && (
+        {/* Step REGISTER_STEP: register */}
+        {step === REGISTER_STEP && (
           <motion.div
             key="scene-register"
             initial={{ opacity: 0, y: 24, scale: 0.96 }}
@@ -325,7 +335,7 @@ export default function Prologue() {
             <form onSubmit={submitRegister} className="bg-sand-100/95 border-4 border-jungle-700 rounded-3xl shadow-lift p-8" data-testid="prologue-register-form">
               <div className="font-display text-xs tracking-[0.3em] uppercase text-sunset-500 mb-2">Step 3 of 3</div>
               <h2 className="font-display text-3xl mb-2">Save your quest</h2>
-              <p className="text-ink-700 mb-6 text-sm">So you don't lose your progress, {name}.</p>
+              <p className="text-ink-700 mb-6 text-sm">So you don&rsquo;t lose your progress, {name}.</p>
               <div className="space-y-4">
                 <div>
                   <Label htmlFor="prologue-email">Email</Label>
@@ -338,7 +348,7 @@ export default function Prologue() {
                 {error && <div className="text-sunset-600 text-sm" data-testid="prologue-error">{error}</div>}
               </div>
               <div className="flex gap-3 justify-end mt-6">
-                <Button type="button" variant="outline" onClick={() => setStep(6)} className="rounded-full">Back</Button>
+                <Button type="button" variant="outline" onClick={() => setStep(AVATAR_STEP)} className="rounded-full">Back</Button>
                 <Button type="submit" disabled={busy} data-testid="prologue-register-btn" className="rounded-full bg-sunset-500 hover:bg-sunset-600 text-white">
                   {busy ? "Embarking…" : "Begin the quest"}
                 </Button>
@@ -347,8 +357,8 @@ export default function Prologue() {
           </motion.div>
         )}
 
-        {/* Step 8-11: tutorial */}
-        {step >= 8 && step <= 11 && (
+        {/* Step TUTORIAL_START..TUTORIAL_END: tutorial */}
+        {step >= TUTORIAL_START && step <= TUTORIAL_END && (
           <motion.div
             key={`scene-tutorial-${step}`}
             initial={{ opacity: 0, x: 36 }}
@@ -357,10 +367,10 @@ export default function Prologue() {
             transition={{ duration: 0.32, ease: "easeOut" }}
             className="max-w-3xl mx-auto w-full px-6 pb-12"
           >
-            <div className="bg-sand-100/95 border-4 border-jungle-700 rounded-3xl shadow-lift p-8" data-testid={`prologue-tutorial-${step - 8}`}>
-              <div className="font-display text-xs tracking-[0.3em] uppercase text-sunset-500 mb-2">How to play · {step - 7} / {TUTORIAL.length}</div>
+            <div className="bg-sand-100/95 border-4 border-jungle-700 rounded-3xl shadow-lift p-8" data-testid={`prologue-tutorial-${step - TUTORIAL_START}`}>
+              <div className="font-display text-xs tracking-[0.3em] uppercase text-sunset-500 mb-2">How to play · {step - TUTORIAL_START + 1} / {TUTORIAL.length}</div>
               {(() => {
-                const t = TUTORIAL[step - 8];
+                const t = TUTORIAL[step - TUTORIAL_START];
                 const Icon = t.icon;
                 return (
                   <>
@@ -383,7 +393,7 @@ export default function Prologue() {
                         <motion.span
                           key={i}
                           initial={false}
-                          animate={{ backgroundColor: i <= step - 8 ? "#265448" : "#E5DFD3" }}
+                          animate={{ backgroundColor: i <= step - TUTORIAL_START ? "#265448" : "#E5DFD3" }}
                           transition={{ duration: 0.4 }}
                           className="h-1.5 flex-1 rounded-full"
                         />
@@ -393,10 +403,10 @@ export default function Prologue() {
                 );
               })()}
               <div className="flex gap-3 justify-end">
-                {step > 8 && (
+                {step > TUTORIAL_START && (
                   <Button variant="outline" onClick={() => setStep(step - 1)} className="rounded-full">Back</Button>
                 )}
-                {step < 11 ? (
+                {step < TUTORIAL_END ? (
                   <Button onClick={() => setStep(step + 1)} data-testid="prologue-tutorial-next" className="rounded-full bg-jungle-500 hover:bg-jungle-600 text-white">
                     Next <ChevronRight className="w-4 h-4 ml-1" />
                   </Button>
