@@ -27,6 +27,18 @@
 - AI travel companion "Ti Dodo".
 - Admin panel for tour-complete awarding.
 
+## What's been implemented (2026-02 / iteration 20 — VACOAS METEO STATION)
+- ✅ **New `meteo.py` backend** — `GET /api/meteo/trails` (public, no auth) returns:
+  - `station` (Vacoas central-plateau coords)
+  - `weather` — live current conditions from Open-Meteo (free, no key)
+  - `forecast` — next 4 days (min/max/precip%/icon bucket)
+  - `trails` — the 4 famous hikes (Le Morne Brabant, Black River Gorges, Tamarind Falls, Le Pouce) each with auto-derived **OPEN / CAUTION / CLOSED** status + a human-readable reason.
+  - Status rules: thunder → ALL closed; heavy rain → Le Morne + Le Pouce closed (slick basalt), others caution; rain/drizzle → Le Morne caution; fog → Le Pouce caution; sustained wind ≥ 55 km/h → exposed climbs caution; else open.
+  - In-process 10-min cache; degrades to last-cached payload if Open-Meteo upstream fails.
+- ✅ **New `MeteoStation.jsx`** modal — opens when the player taps the new Vacoas pin in the centre of the map. Shows current temp + label + wind/humidity/Hi-Lo, a 4-day forecast grid, and a status card per trail (icon + difficulty + distance + elev + reason). Backdrop click, X button and Escape all close it; z-[96] sits above CharacterSheet.
+- ✅ **Meteo pin on `MapMauritius.jsx`** — central plateau at left:47% top:48%, ocean-700 palette, CloudSun icon, glow halo. Hover tooltip "Meteo Station · Weather · Trail conditions".
+- ✅ Verified by testing agent v3 — **10/10 pytest backend cases pass + 8/8 frontend cases pass**. Pytest file added at `/app/backend/tests/test_meteo.py`.
+
 ## What's been implemented (2026-02 / iteration 19 — SAGA CONFETTI ON ADVENTURE TAB)
 - ✅ **`SagaConfetti.jsx`** — a zero-dep Framer Motion particle burst (36 particles, sand/sunset/jungle palette, mixed shapes: squares + circles + streamers). One-shot per `trigger` nonce, auto-cleans after ~2.2s, `pointer-events: none` so it never blocks the Claim button beneath it.
 - ✅ **Wired into CharacterSheet** — whenever the sheet opens AND the player has a saga at 100% waiting to be claimed (`unreadBreakdown.sagas > 0`), a celebratory burst fires inside the Adventure tab's Main Quest section + plays the `playChime()` cue. Doesn't fire for badges/rewards (kept rare and earned-feeling, per the brief).
