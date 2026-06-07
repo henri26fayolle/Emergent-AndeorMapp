@@ -27,6 +27,7 @@ from main_quests import build_router as build_main_quests_router, seed_main_ques
 from self_guided import build_router as build_self_guided_router, seed_self_guided
 from meteo import build_router as build_meteo_router
 from info_center import build_router as build_info_center_router
+from admin_extra import build_router as build_admin_extra_router
 
 # ---------- MongoDB ----------
 mongo_url = os.environ["MONGO_URL"]
@@ -705,8 +706,12 @@ api_meteo = build_meteo_router()
 app.include_router(api_meteo, prefix="/api")
 
 # Information Center auxiliary modules (events/holidays, transport, safety)
-api_info = build_info_center_router()
+api_info = build_info_center_router(db)
 app.include_router(api_info, prefix="/api")
+
+# Admin polish — Tour CRUD, booking CSV export, reward template + advisory mgmt
+api_admin_extra = build_admin_extra_router(db, require_admin)
+app.include_router(api_admin_extra, prefix="/api")
 
 app.add_middleware(
     CORSMiddleware,

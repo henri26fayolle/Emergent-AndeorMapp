@@ -160,8 +160,12 @@ def _surf_from_weather(wind_kmh: Optional[float], bucket: Optional[str]) -> dict
 # Router
 # ---------------------------------------------------------------------------
 
-def build_router() -> APIRouter:
+def build_router(db=None) -> APIRouter:
     """Adds /info/events, /info/transport, /info/safety routes.
+
+    `db` (optional) is the Mongo handle — if passed, /info/transport reads
+    road_advisories live from it. Falls back to the static ROAD_ADVISORIES
+    list otherwise.
 
     The /info/safety route accepts an in-memory snapshot of the current weather
     via the same upstream call as /meteo/trails — but it's cheap because of the
@@ -179,11 +183,19 @@ def build_router() -> APIRouter:
 
     @router.get("/transport")
     async def transport():
+        # Live advisories from Mongo when available; static fallback otherwise.
+        advisories = ROAD_ADVISORIES
+        if db is not None:
+            try:
+                rows = await db.road_advisories.find({}, {"_id": 0}).sort("created_at", -1).to_list(50)
+                advisories = rows
+            except Exception:
+                pass
         return {
             "rideshare":            RIDESHARE,
             "taxis":                TAXIS,
             "public_transit_tips":  PUBLIC_TRANSIT_TIPS,
-            "road_advisories":      ROAD_ADVISORIES,
+            "road_advisories":      advisories,
             "partner_transfer_app": {
                 "name":     "An Deor Transfers",
                 "status":   "coming_soon",
