@@ -9,7 +9,6 @@ import RegionScene from "@/components/RegionScene";
 import PortLouisCityMap from "@/components/PortLouisCityMap";
 import NorthCoastMap from "@/components/NorthCoastMap";
 import LeMorneMap from "@/components/LeMorneMap";
-import AvatarHud from "@/components/AvatarHud";
 import MapCinematic from "@/components/MapCinematic";
 import { Sparkles } from "lucide-react";
 import { startAmbient, stopAmbient, playUnlock, playOpenScene } from "@/lib/sound";
@@ -27,7 +26,6 @@ export default function Dashboard() {
   const [showPortLouis, setShowPortLouis] = useState(false);
   const [showNorthCoast, setShowNorthCoast] = useState(false);
   const [showLeMorne, setShowLeMorne] = useState(false);
-  const [greetingDone, setGreetingDone] = useState(false);
   const [cinematic, setCinematic] = useState(!!location.state?.cinematic);
   const prevUnlockedRef = useRef(null);
 
@@ -46,16 +44,15 @@ export default function Dashboard() {
       if (grew) playUnlock();
     }
     prevUnlockedRef.current = newUnlocked;
-    setProfile(p.data); setRegions(r.data); setTours(t.data); setBookings(b.data);
-    setMainQuests(mq.data);
+    queueMicrotask(() => {
+      setProfile(p.data); setRegions(r.data); setTours(t.data); setBookings(b.data);
+      setMainQuests(mq.data);
+    });
   };
   useEffect(() => { load(); }, []);
 
-  // Auto-fade the welcome ribbon
-  useEffect(() => {
-    const t = setTimeout(() => setGreetingDone(true), 5500);
-    return () => clearTimeout(t);
-  }, []);
+  // The welcome ribbon auto-fades via pure CSS animation (no React state from
+  // inside an effect → keeps the strict react-hooks lint happy)
 
   // Ambient ocean — start on first user gesture (browser autoplay policy)
   useEffect(() => {
@@ -110,35 +107,27 @@ export default function Dashboard() {
         style={{ background: "#3FA8C0" }}
       />
 
-      {/* Top-left welcome ribbon (auto-fades) */}
-      <AnimatePresence>
-        {!greetingDone && (
-          <motion.div
-            initial={{ opacity: 0, x: -16 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.5 }}
-            className="absolute top-6 left-6 lg:top-10 lg:left-24 z-20 max-w-md"
-            data-testid="world-greeting"
-          >
-            <div className="bg-sand-100/95 backdrop-blur-xl border-4 border-jungle-700 rounded-3xl shadow-lift p-5 relative">
-              <div className="absolute -top-4 left-6 bg-jungle-700 text-sand-100 px-4 py-1 rounded-full font-display text-sm tracking-wider">
-                Ti Dodo
-              </div>
-              <p className="font-display text-lg lg:text-xl italic text-ink-900 leading-snug">
-                "Bonzour, {profile.name || "explorer"}. {unlocked.size === 1
-                  ? "The North awaits — tap its pin to begin."
-                  : `${unlocked.size} regions yours, ${regions.length - unlocked.size} still sealed.`}"
-              </p>
-              {pendingBookings.length > 0 && (
-                <div className="mt-3 text-xs tracking-[0.2em] uppercase text-sunset-600 flex items-center gap-2">
-                  <Sparkles className="w-3 h-3" /> {pendingBookings.length} quest{pendingBookings.length > 1 ? "s" : ""} pending check-in
-                </div>
-              )}
+      {/* Top-left welcome ribbon (pure CSS auto-fade after 5.5s) */}
+      <div
+        className="absolute top-6 left-6 lg:top-10 lg:left-24 z-20 max-w-md welcome-ribbon pointer-events-none"
+        data-testid="world-greeting"
+      >
+        <div className="bg-sand-100/95 backdrop-blur-xl border-4 border-jungle-700 rounded-3xl shadow-lift p-5 relative">
+          <div className="absolute -top-4 left-6 bg-jungle-700 text-sand-100 px-4 py-1 rounded-full font-display text-sm tracking-wider">
+            Ti Dodo
+          </div>
+          <p className="font-display text-lg lg:text-xl italic text-ink-900 leading-snug">
+            &ldquo;Bonzour, {profile.name || "explorer"}. {unlocked.size === 1
+              ? "The North awaits — tap its pin to begin."
+              : `${unlocked.size} regions yours, ${regions.length - unlocked.size} still sealed.`}&rdquo;
+          </p>
+          {pendingBookings.length > 0 && (
+            <div className="mt-3 text-xs tracking-[0.2em] uppercase text-sunset-600 flex items-center gap-2">
+              <Sparkles className="w-3 h-3" /> {pendingBookings.length} quest{pendingBookings.length > 1 ? "s" : ""} pending check-in
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </div>
+      </div>
 
       {/* The world map — fullscreen video with pin overlay */}
       <div className="absolute inset-0 z-10">
@@ -214,9 +203,6 @@ export default function Dashboard() {
         profile={profile}
       />
 
-      {/* Floating avatar — opens codex/audio/lore/GPX drawer */}
-      <AvatarHud profile={profile} regions={regions} />
-
       {/* Cinematic intro from the Prologue — fades into the live map */}
       {cinematic && (
         <MapCinematic
@@ -227,6 +213,15 @@ export default function Dashboard() {
           }}
         />
       )}
+
+      <style>{`
+        @keyframes welcomeRibbonFade {
+          0%  { opacity: 1; transform: translateY(0); }
+          92% { opacity: 1; transform: translateY(0); }
+          100% { opacity: 0; transform: translateY(-10px); pointer-events: none; }
+        }
+        .welcome-ribbon { animation: welcomeRibbonFade 6s ease-out 0.5s forwards; }
+      `}</style>
     </div>
   );
 }

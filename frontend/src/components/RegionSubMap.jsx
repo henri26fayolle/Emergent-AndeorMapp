@@ -37,8 +37,6 @@ export default function RegionSubMap({
   tourIcons = {},
   focusedQuest,
   focusedTourIds,
-  profile,
-  hudScope,
   labelStrip = (n) => n,
   testIdPrefix = "region",
 }) {
@@ -306,11 +304,7 @@ export default function RegionSubMap({
           )}
         </TransformWrapper>
 
-        <AvatarHud
-          profile={profile}
-          scope={hudScope}
-          tours={venueTours}
-        />
+        <AvatarHud />
 
         <VenueModal
           open={!!openTourId}
