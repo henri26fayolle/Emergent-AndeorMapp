@@ -10,6 +10,7 @@ import PortLouisCityMap from "@/components/PortLouisCityMap";
 import NorthCoastMap from "@/components/NorthCoastMap";
 import LeMorneMap from "@/components/LeMorneMap";
 import MapCinematic from "@/components/MapCinematic";
+import MeteoStation from "@/components/MeteoStation";
 import { Sparkles } from "lucide-react";
 import { startAmbient, stopAmbient, playUnlock, playOpenScene } from "@/lib/sound";
 
@@ -26,6 +27,7 @@ export default function Dashboard() {
   const [showPortLouis, setShowPortLouis] = useState(false);
   const [showNorthCoast, setShowNorthCoast] = useState(false);
   const [showLeMorne, setShowLeMorne] = useState(false);
+  const [showMeteo, setShowMeteo] = useState(false);
   const [cinematic, setCinematic] = useState(!!location.state?.cinematic);
   const prevUnlockedRef = useRef(null);
 
@@ -152,6 +154,7 @@ export default function Dashboard() {
             focusedQuest={focused}
             focusedRegions={focusedRegions}
             focusedRemainingByRegion={focusedRemainingByRegion}
+            onMeteoClick={() => { playOpenScene(); setShowMeteo(true); }}
           />
         </div>
       </div>
@@ -202,6 +205,9 @@ export default function Dashboard() {
         focusedTourIds={new Set(focused?.tour_ids || [])}
         profile={profile}
       />
+
+      {/* Vacoas Meteo Station — central-plateau weather & trail conditions */}
+      <MeteoStation open={showMeteo} onClose={() => setShowMeteo(false)} />
 
       {/* Cinematic intro from the Prologue — fades into the live map */}
       {cinematic && (
