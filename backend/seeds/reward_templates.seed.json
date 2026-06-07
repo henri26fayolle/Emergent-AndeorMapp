@@ -1,0 +1,6 @@
+[
+  {"reward_id": "r-disc-10", "type": "discount", "title": "10% off next tour",          "description": "Apply at checkout on andeor.mu",    "code_prefix": "ANDEOR10",  "min_xp": 100, "partner": "An Deor"},
+  {"reward_id": "r-disc-20", "type": "discount", "title": "20% off any cultural tour",  "description": "Limited cultural categories.",      "code_prefix": "CULTURE20", "min_xp": 300, "partner": "An Deor"},
+  {"reward_id": "r-rhum",    "type": "goodie",   "title": "Free Rhum Arrangé Tasting",  "description": "At Chamarel Distillery, on us.",    "code_prefix": "CHAMAREL",  "min_xp": 500, "partner": "Chamarel Distillery"},
+  {"reward_id": "r-spa",     "type": "goodie",   "title": "Spa Voucher 30 min",         "description": "Tropical Spa - Grand Baie.",        "code_prefix": "SPA30",     "min_xp": 800, "partner": "Tropical Spa"}
+]

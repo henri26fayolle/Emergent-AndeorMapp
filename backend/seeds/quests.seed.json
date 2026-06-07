@@ -1,0 +1,7 @@
+[
+  {"quest_id": "q-first-tour",      "name": "First Steps",     "description": "Book your very first An Deor tour.", "type": "book_tour",         "xp_reward": 30,  "icon": "Compass"},
+  {"quest_id": "q-meet-guide",      "name": "Meet a Guide",    "description": "Complete a tour and rate your guide.", "type": "interact_guide",   "xp_reward": 40,  "icon": "UserCheck"},
+  {"quest_id": "q-three-regions",   "name": "Triple Threat",   "description": "Unlock 3 regions of Mauritius.", "type": "unlock_regions", "target": 3, "xp_reward": 80,  "icon": "Map"},
+  {"quest_id": "q-culture-vulture", "name": "Culture Vulture", "description": "Complete 2 cultural experiences.", "type": "category_culture", "target": 2, "xp_reward": 60,  "icon": "Drama"},
+  {"quest_id": "q-collector",       "name": "Collector",       "description": "Earn 4 collectible cards.", "type": "collect_cards", "target": 4, "xp_reward": 100, "icon": "Layers"}
+]

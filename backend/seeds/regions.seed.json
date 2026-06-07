@@ -1,0 +1,7 @@
+[
+  {"region_id": "north-coast",     "name": "North Coast",            "description": "Grand Baie's vibrant lagoons & beaches.",          "unlock_xp": 0, "icon": "Waves"},
+  {"region_id": "black-river",     "name": "Black River Gorges",     "description": "Rainforests, peaks & endemic wildlife.",            "unlock_xp": 0, "icon": "Mountain"},
+  {"region_id": "south-wild",      "name": "Wild South",             "description": "Le Morne, cliffs and surf breaks.",                 "unlock_xp": 0, "icon": "Wind"},
+  {"region_id": "east-lagoons",    "name": "East Lagoons",           "description": "Ile aux Cerfs and turquoise reefs.",                "unlock_xp": 0, "icon": "Anchor"},
+  {"region_id": "central-culture", "name": "Central Cultural Belt",  "description": "Port Louis markets, Sega & Creole heritage.",       "unlock_xp": 0, "icon": "Landmark"}
+]

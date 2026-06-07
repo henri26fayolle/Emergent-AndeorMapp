@@ -186,31 +186,16 @@ class CheckInIn(BaseModel):
     pin: str = Field(min_length=2)
 
 
-# ---------- Seed data ----------
-REGIONS = [
-    {"region_id": "north-coast",     "name": "North Coast",            "description": "Grand Baie's vibrant lagoons & beaches.",          "unlock_xp": 0, "icon": "Waves"},
-    {"region_id": "black-river",     "name": "Black River Gorges",     "description": "Rainforests, peaks & endemic wildlife.",            "unlock_xp": 0, "icon": "Mountain"},
-    {"region_id": "south-wild",      "name": "Wild South",             "description": "Le Morne, cliffs and surf breaks.",                 "unlock_xp": 0, "icon": "Wind"},
-    {"region_id": "east-lagoons",    "name": "East Lagoons",           "description": "Ile aux Cerfs and turquoise reefs.",                "unlock_xp": 0, "icon": "Anchor"},
-    {"region_id": "central-culture", "name": "Central Cultural Belt",  "description": "Port Louis markets, Sega & Creole heritage.",       "unlock_xp": 0, "icon": "Landmark"},
-]
+# ---------- Seed data (content lives in /app/backend/seeds/*.seed.json) ----------
+SEEDS_DIR = ROOT_DIR / "seeds"
 
-TOURS = json.loads((ROOT_DIR / "seeds" / "tours.seed.json").read_text(encoding="utf-8"))
+def _load_seed(name: str) -> list:
+    return json.loads((SEEDS_DIR / name).read_text(encoding="utf-8"))
 
-QUESTS = [
-    {"quest_id": "q-first-tour", "name": "First Steps", "description": "Book your very first An Deor tour.", "type": "book_tour", "xp_reward": 30, "icon": "Compass"},
-    {"quest_id": "q-meet-guide", "name": "Meet a Guide", "description": "Complete a tour and rate your guide.", "type": "interact_guide", "xp_reward": 40, "icon": "UserCheck"},
-    {"quest_id": "q-three-regions", "name": "Triple Threat", "description": "Unlock 3 regions of Mauritius.", "type": "unlock_regions", "target": 3, "xp_reward": 80, "icon": "Map"},
-    {"quest_id": "q-culture-vulture", "name": "Culture Vulture", "description": "Complete 2 cultural experiences.", "type": "category_culture", "target": 2, "xp_reward": 60, "icon": "Drama"},
-    {"quest_id": "q-collector", "name": "Collector", "description": "Earn 4 collectible cards.", "type": "collect_cards", "target": 4, "xp_reward": 100, "icon": "Layers"},
-]
-
-REWARD_TEMPLATES = [
-    {"reward_id": "r-disc-10", "type": "discount", "title": "10% off next tour", "description": "Apply at checkout on andeor.mu", "code_prefix": "ANDEOR10", "min_xp": 100, "partner": "An Deor"},
-    {"reward_id": "r-disc-20", "type": "discount", "title": "20% off any cultural tour", "description": "Limited cultural categories.", "code_prefix": "CULTURE20", "min_xp": 300, "partner": "An Deor"},
-    {"reward_id": "r-rhum", "type": "goodie", "title": "Free Rhum Arrangé Tasting", "description": "At Chamarel Distillery, on us.", "code_prefix": "CHAMAREL", "min_xp": 500, "partner": "Chamarel Distillery"},
-    {"reward_id": "r-spa", "type": "goodie", "title": "Spa Voucher 30 min", "description": "Tropical Spa - Grand Baie.", "code_prefix": "SPA30", "min_xp": 800, "partner": "Tropical Spa"},
-]
+REGIONS = _load_seed("regions.seed.json")
+TOURS = _load_seed("tours.seed.json")
+QUESTS = _load_seed("quests.seed.json")
+REWARD_TEMPLATES = _load_seed("reward_templates.seed.json")
 
 
 async def seed_data():
