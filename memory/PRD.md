@@ -27,6 +27,14 @@
 - AI travel companion "Ti Dodo".
 - Admin panel for tour-complete awarding.
 
+## What's been implemented (2026-02 / iteration 14 — TRAIL EPILOGUE CUTSCENE + CONTEXT-AWARE LORE AUDIO)
+- ✅ **Trail Epilogue Cutscene + Shareable Postcard** — when a player completes every stop of a self-guided journey, the backend's check-in returns a full `epilogue` payload (`title_earned`, `epilogue`, `stops[]`, theme colors). The frontend `SelfGuidedHud` dispatches `andeor:trail-completed`; the globally-mounted `TrailEpilogueWatcher` plays a 3-beat cinematic in `TrailEpilogue.jsx`:
+  - Beat 1 — Ti Dodo farewell monologue (typewriter + auto-TTS, also playable via Listen button)
+  - Beat 2 — Animated "Title Earned" medallion reveal (e.g. *"Maroon Trail Walker"*)
+  - Beat 3 — Trail Postcard (html2canvas → PNG download or native share). Postcard shows player name, avatar initial, title earned, journey title/subtitle, walked-on date, and all conquered stops.
+- ✅ **Time-of-day & weather-aware lore audio (Ti Dodo)** — intro / per-stop / epilogue narration now varies based on the player's clock (dawn/morning/midday/golden_hour/dusk/night) and live weather (clear/cloudy/fog/rain/thunder, via free Open-Meteo with silent fallback). The backend prepends a 1-line context phrase to the TTS script and caches each variant separately on disk (`sg__{journey}__{kind}__{tod}__{weather}.mp3`). Backwards compatible — no params = old behaviour.
+- ✅ **Verified end-to-end** by testing agent v3 — 16/16 pytest backend cases pass, all frontend flows confirmed (Trail Epilogue beats, postcard PNG download, weather/tod params present in audio network calls).
+
 ## What's been implemented (2026-02 / iteration 13 — HUD MODALS + MAIN QUEST STORY + EPILOGUE CUTSCENE)
 - ✅ **All right-rail HUD actions open as in-game modals** (Main Quests, Side Quests, Bag, Vault, Rank, Ti Dodo) instead of full-page routes — the map stays visible behind. Map and Admin buttons still navigate.
 - ✅ **`HudPanels` modal host** renders each page embedded (`embedded` prop on Badges/Rewards/MainQuests/Quests/Leaderboard/Companion). Standalone routes still work for deep links.
