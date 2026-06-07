@@ -27,6 +27,13 @@
 - AI travel companion "Ti Dodo".
 - Admin panel for tour-complete awarding.
 
+## What's been implemented (2026-02 / iteration 22 — 3 NEW INFO CENTER TABS)
+- ✅ **Events & Holidays** — `/api/info/events` returns the 8 most-imminent Mauritian public holidays (Cavadee, Ougadi, Chinese Spring, Eid, Père Laval, Diwali, Christmas, etc.) tagged by tradition (Hindu/Tamil/Muslim/Christian/Chinese/Sega/Creole/Secular), plus 4 recurring cultural events at major venues (Sega night, Caudan Friday Market, Père Laval Mass, Chinatown food fest). Each holiday card has a "Today / Tomorrow / in N days" countdown.
+- ✅ **Roads & Transport** — `/api/info/transport` returns 3 ride-share providers (Yego, Cab Online, HeyCab) + 3 trusted taxi stands (each with click-to-call), 4 public-transit tips, and a road-advisories list (currently empty → "All roads clear right now"). A `Book a transfer` CTA POSTs to `/api/info/transport/book` (MOCKED — returns a stub `AND-T-{epoch}` reference until the partner transfer app is wired in).
+- ✅ **Safety Advisories** — `/api/info/safety` auto-derives the Mauritius cyclone warning level (0=All clear → 3=Class III) from current wind + weather code, surfaces a west-coast surf report, and lists 6 famous beaches each tagged with their rip-current profile (low/moderate/high) + a safety note. Data flows from the meteo cache so no duplicate Open-Meteo hits.
+- ✅ **Tab architecture in `InfoCenter.jsx`** — module-scoped `ENDPOINT` map, per-tab payload cache (one fetch per session per tab), shared `Loader`/`ErrorBanner` helpers. Tradition + rip-profile colour maps in `TRADITION_STYLE` / `RIP_STYLE`.
+- ✅ **Testing**: backend pytest **12/12 PASS** (`/app/backend/tests/test_iter22_info_center.py`); frontend **8/8 scenarios PASS** via testing_agent_v3 (INFO-1..6, RG1, RG2). Testing agent also caught + auto-fixed a prop-rename leak (`onMeteoClick` → `onInfoCenterClick`) in Dashboard.jsx that would have left the pin dead.
+
 ## What's been implemented (2026-02 / iteration 21 — METEO STATION RE-FRAMED AS INFORMATION CENTER)
 - ✅ **`MeteoStation.jsx` → `InfoCenter.jsx`** — same modal, now a tabbed information hub designed to grow. The map pin label changed from "Meteo" to "Info" (lucide `Info` icon), the modal title is now "Live Mauritius travel intel" with eyebrow "Vacoas Information Center".
 - ✅ **Tab architecture** — currently one tab `Weather & Trails` (carrying all the iteration-20 functionality: current weather + 4-day forecast + 4 trail statuses). The `TABS` array at the top of `InfoCenter.jsx` is documented with future tab placeholders (Events & Holidays, Roads & Transport, Safety Advisories) so adding a new info module is a one-entry append.
