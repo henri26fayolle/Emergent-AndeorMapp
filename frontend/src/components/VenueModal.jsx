@@ -88,6 +88,7 @@ export default function VenueModal({ open, tourId, focusedQuest, isFocused, onCl
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent
         data-testid="venue-modal"
+        hideClose
         className={`p-0 overflow-hidden border-4 border-jungle-700 rounded-3xl transition-[max-width] duration-500 ease-out ${
           expanded ? "max-w-3xl" : "max-w-md"
         }`}
