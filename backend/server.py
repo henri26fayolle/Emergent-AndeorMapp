@@ -5,6 +5,7 @@ ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / ".env")
 
 import os
+import json
 import uuid
 import logging
 import secrets
@@ -194,13 +195,7 @@ REGIONS = [
     {"region_id": "central-culture", "name": "Central Cultural Belt",  "description": "Port Louis markets, Sega & Creole heritage.",       "unlock_xp": 0, "icon": "Landmark"},
 ]
 
-TOURS = [
-    {"tour_id": "t-snorkel-blue-bay", "name": "Blue Bay Snorkel Safari", "region": "east-lagoons", "category": "outdoor", "description": "Half-day snorkel inside Blue Bay marine park with a certified An Deor guide.", "price": 65, "duration": "4h", "xp_reward": 120, "card_id": "card-blue-bay", "badge_id": "badge-reef-friend", "guide_pin": "REEF42", "image": "https://images.pexels.com/photos/15018959/pexels-photo-15018959.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"},
-    {"tour_id": "t-hike-le-pouce", "name": "Le Pouce Sunrise Hike", "region": "black-river", "category": "outdoor", "description": "Beat the sun to one of Mauritius' most iconic ridge tops.", "price": 45, "duration": "5h", "xp_reward": 150, "card_id": "card-le-pouce", "badge_id": "badge-ridge-runner", "guide_pin": "RIDGE07", "image": "https://images.pexels.com/photos/8387277/pexels-photo-8387277.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"},
-    {"tour_id": "t-creole-table", "name": "Creole Table Cooking Class", "region": "central-culture", "subregion": "port-louis", "city_x": 45, "city_y": 64, "category": "culture", "description": "Cook rougaille, vindaye & gateau piment with a local family.", "price": 80, "duration": "3h", "xp_reward": 100, "card_id": "card-creole-table", "badge_id": "badge-piment-master", "guide_pin": "PIMENT9", "image": "https://images.pexels.com/photos/32793278/pexels-photo-32793278.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"},
-    {"tour_id": "t-kite-le-morne", "name": "Le Morne Kite Session", "region": "south-wild", "category": "outdoor", "description": "Beginner-friendly kitesurf coaching at one of the world's top spots.", "price": 130, "duration": "3h", "xp_reward": 180, "card_id": "card-le-morne", "badge_id": "badge-wind-rider", "guide_pin": "WIND88", "image": "https://images.pexels.com/photos/7415730/pexels-photo-7415730.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"},
-    {"tour_id": "t-sega-night", "name": "Sega Night by the Sea", "region": "north-coast", "category": "culture", "description": "Sunset Sega lesson, fire dance & rhum arrangé tasting.", "price": 55, "duration": "3h", "xp_reward": 110, "card_id": "card-sega", "badge_id": "badge-sega-soul", "guide_pin": "SEGA21", "image": "https://images.pexels.com/photos/36731927/pexels-photo-36731927.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"},
-]
+TOURS = json.loads((ROOT_DIR / "seeds" / "tours.seed.json").read_text(encoding="utf-8"))
 
 QUESTS = [
     {"quest_id": "q-first-tour", "name": "First Steps", "description": "Book your very first An Deor tour.", "type": "book_tour", "xp_reward": 30, "icon": "Compass"},
