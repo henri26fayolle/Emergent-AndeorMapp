@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import "@/App.css";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { LanguageProvider } from "@/contexts/LanguageContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Toaster } from "@/components/ui/sonner";
 import Prologue from "@/pages/Prologue";
@@ -44,8 +45,10 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <AppRouter />
-        <Toaster position="top-center" richColors />
+        <LanguageProvider>
+          <AppRouter />
+          <Toaster position="top-center" richColors />
+        </LanguageProvider>
       </AuthProvider>
     </BrowserRouter>
   );

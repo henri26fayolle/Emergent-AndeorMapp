@@ -94,6 +94,7 @@ def public_user(u: dict) -> dict:
         "avatar": u.get("avatar"),
         "tutorial_completed": u.get("tutorial_completed", False),
         "auth_provider": u.get("auth_provider", "password"),
+        "language": u.get("language", "en"),
         "created_at": u.get("created_at"),
     }
 
@@ -150,12 +151,14 @@ class RegisterIn(BaseModel):
     name: str = Field(min_length=1)
     avatar: Optional[str] = None
     tutorial_completed: Optional[bool] = False
+    language: Optional[str] = None  # "en" | "fr" | "mfe"
 
 
 class UpdateMeIn(BaseModel):
     name: Optional[str] = None
     avatar: Optional[str] = None
     tutorial_completed: Optional[bool] = None
+    language: Optional[str] = None  # "en" | "fr" | "mfe" (Mauritian Creole)
 
 
 class LoginIn(BaseModel):
@@ -291,6 +294,7 @@ async def register(payload: RegisterIn, response: Response):
         "picture": None,
         "avatar": payload.avatar,
         "tutorial_completed": bool(payload.tutorial_completed),
+        "language": payload.language if payload.language in {"en", "fr", "mfe"} else "en",
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
     await db.users.insert_one(doc)
@@ -325,6 +329,8 @@ async def me(user: dict = Depends(get_current_user)):
 @api.patch("/me")
 async def update_me(payload: UpdateMeIn, user: dict = Depends(get_current_user)):
     update = {k: v for k, v in payload.model_dump(exclude_unset=True).items() if v is not None}
+    if "language" in update and update["language"] not in {"en", "fr", "mfe"}:
+        raise HTTPException(400, "Unsupported language. Use 'en', 'fr' or 'mfe'.")
     if update:
         await db.users.update_one({"user_id": user["user_id"]}, {"$set": update})
     doc = await db.users.find_one({"user_id": user["user_id"]}, {"_id": 0, "password_hash": 0})
@@ -593,13 +599,20 @@ async def chat(payload: ChatIn, user: dict = Depends(get_current_user)):
     if not EMERGENT_LLM_KEY:
         raise HTTPException(500, "AI is not configured")
     session_id = payload.session_id or f"chat_{user['user_id']}"
+    lang_directive = {
+        "en":  "Reply in English. You may sprinkle the occasional Creole word with English translation in parentheses.",
+        "fr":  "Réponds en français. Tu peux saupoudrer occasionnellement un mot créole avec sa traduction française entre parenthèses. Ton chaleureux et tutoyé.",
+        "mfe": "Reponn an kreol morisien. Sirtou ekrir an Kreol Morisien natirel — pa melanze tro fransé/anglé. Trad an parantez si u uzz enn mot teknik anglais/fransé.",
+    }.get(user.get("language", "en"), "Reply in English. You may sprinkle the occasional Creole word with English translation in parentheses.")
+
     system = (
         "You are 'Ti Dodo', the friendly AI travel companion for An Deor — a Mauritius-based "
-        "outdoor & cultural travel marketplace. Speak warmly, sprinkle the occasional Creole "
-        "word (e.g. 'mo nepli', 'bizin') with translation in parentheses. Give concrete, local "
-        "Mauritius tips: hidden beaches, Sega traditions, Creole food, hiking tips, sea "
-        f"conditions, etiquette. The player's name is {user.get('name', 'Explorer')}, currently "
-        f"level {user.get('level', 1)} with {user.get('xp', 0)} XP. Suggest An Deor tours when "
+        "outdoor & cultural travel marketplace. Speak warmly. "
+        f"{lang_directive} "
+        "Give concrete, local Mauritius tips: hidden beaches, Sega traditions, Creole food, "
+        "hiking tips, sea conditions, etiquette. "
+        f"The player's name is {user.get('name', 'Explorer')}, currently level "
+        f"{user.get('level', 1)} with {user.get('xp', 0)} XP. Suggest An Deor tours when "
         "relevant: 'Blue Bay Snorkel Safari', 'Le Pouce Sunrise Hike', 'Creole Table Cooking Class', "
         "'Le Morne Kite Session', 'Sega Night by the Sea'. Keep answers under 160 words."
     )
