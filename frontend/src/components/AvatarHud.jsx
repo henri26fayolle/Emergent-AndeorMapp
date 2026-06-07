@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import { BookOpen } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -50,6 +50,10 @@ export default function AvatarHud() {
       const liveRewards = (rewardsRes.data || []).filter((r) => !r.redeemed).length;
       const liveSagas   = (questsRes.data || []).filter((q) => q?.progress?.percent === 100 && !q.completed).length;
 
+      // Snapshot default policy (deliberately asymmetric):
+      //   • badges  → defaults to live count (so existing badges DON'T trigger a dot on first login)
+      //   • rewards → defaults to 0 (so unredeemed rewards DO dot until the player opens the sheet)
+      //   • sagas   → defaults to 0 (same reasoning — ready sagas should pull the player back in)
       const seen = loadSeen(user.user_id) || { badges: liveBadges, rewards: 0, sagas: 0 };
       const newBadges  = Math.max(0, liveBadges  - (seen.badges || 0));
       const newRewards = Math.max(0, liveRewards - (seen.rewards || 0));
@@ -102,11 +106,20 @@ export default function AvatarHud() {
     };
   }, [user, refreshUnread]);
 
+  const markSeenTimerRef = useRef(null);
+
   const openSheet = () => {
     playClick();
     setSheetOpen(true);
-    // Dismiss the dot after a short beat so the player notices it
-    setTimeout(() => { markAllSeen(); }, 1200);
+    // Dismiss the dot after a short beat so the player notices it.
+    // Track the timer so a fast close (< 1.2s) cancels it gracefully.
+    if (markSeenTimerRef.current) clearTimeout(markSeenTimerRef.current);
+    markSeenTimerRef.current = setTimeout(() => { markAllSeen(); }, 1200);
+  };
+
+  const closeSheet = () => {
+    setSheetOpen(false);
+    if (markSeenTimerRef.current) { clearTimeout(markSeenTimerRef.current); markSeenTimerRef.current = null; }
   };
 
   if (!user) return null;
@@ -194,8 +207,8 @@ export default function AvatarHud() {
 
       <CharacterSheet
         open={sheetOpen}
-        onClose={() => setSheetOpen(false)}
-        onChangeAvatar={() => { setSheetOpen(false); setAvatarPickerOpen(true); }}
+        onClose={closeSheet}
+        onChangeAvatar={() => { closeSheet(); setAvatarPickerOpen(true); }}
       />
 
       <AvatarPickerDialog open={avatarPickerOpen} onOpenChange={setAvatarPickerOpen} />

@@ -27,6 +27,16 @@
 - AI travel companion "Ti Dodo".
 - Admin panel for tour-complete awarding.
 
+## What's been implemented (2026-02 / iteration 18 — NOTIFICATION DOT ON THE AVATAR BUBBLE)
+- ✅ **Pulsing red dot** on the bottom-left avatar bubble whenever there's something new to claim:
+  - **New cards/badges** since the last sheet open
+  - **Unredeemed rewards** sitting in the player's vault
+  - **Sagas at 100%** waiting to be claimed
+- ✅ **Self-dismissing** — clicking the avatar opens the sheet and the dot auto-fades 1.2s later (a ref-tracked timer is cancelled if the user closes the sheet faster). A `markAllSeen` snapshot is persisted to `localStorage.andeor.seen.{user_id}`.
+- ✅ **Asymmetric default policy** — fresh users won't see a spurious dot from pre-existing badges, but DO see one if they have unredeemed rewards / ready sagas waiting (deliberate, documented inline).
+- ✅ **Live reactivity** — AvatarHud listens for window focus + custom events `andeor:notifications-refresh`, `andeor:self-guided-changed`, `andeor:trail-completed`. Rewards page redeem + EpilogueWatcher saga-complete now both dispatch the refresh event.
+- ✅ Verified end-to-end by testing agent v3 — **8/8 cases pass** (DOT-1 to DOT-7 + REGRESSION-RG1) including the localStorage persistence, per-user keying, and CharacterSheet regression.
+
 ## What's been implemented (2026-02 / iteration 17 — UNIFIED CHARACTER SHEET, RIGHT-RAIL REMOVED)
 - ✅ **New `CharacterSheet.jsx`** — clicking the bottom-left avatar bubble now opens a single unified modal with 5 tabs:
   - **Adventure** (default) — Main Quest + Bag (cards/badges) stacked
