@@ -26,6 +26,7 @@ from codex import build_router as build_codex_router, seed_lore
 from main_quests import build_router as build_main_quests_router, seed_main_quests
 from self_guided import build_router as build_self_guided_router, seed_self_guided
 from meteo import build_router as build_meteo_router
+from info_center import build_router as build_info_center_router
 
 # ---------- MongoDB ----------
 mongo_url = os.environ["MONGO_URL"]
@@ -702,6 +703,10 @@ app.include_router(api_sg, prefix="/api")
 # Mauritius meteo station (weather + trail conditions for the 4 famous hikes)
 api_meteo = build_meteo_router()
 app.include_router(api_meteo, prefix="/api")
+
+# Information Center auxiliary modules (events/holidays, transport, safety)
+api_info = build_info_center_router()
+app.include_router(api_info, prefix="/api")
 
 app.add_middleware(
     CORSMiddleware,

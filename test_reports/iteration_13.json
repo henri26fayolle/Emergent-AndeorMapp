@@ -1,0 +1,50 @@
+{
+  "summary": "Frontend verification of Iteration 22 — Info Center 4-tab modal (Vacoas Info Center). All 8 scenarios PASS (INFO-1..6, RG1, RG2) after fixing a prop-name mismatch in Dashboard.jsx that prevented the Info Center modal from opening. Backend was previously verified by pytest (12/12).",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "Dashboard / MapMauritius integration",
+        "issue": "Prop name mismatch: Dashboard.jsx passed `onMeteoClick`, but MapMauritius destructures `onInfoCenterClick` (renamed in this iteration). Result: clicking the [data-testid=\"map-info-center\"] info pin did NOTHING — the modal never opened, blocking the entire feature. Fixed in this iteration (testing agent applied glue fix).",
+        "selector": "[data-testid=\"map-info-center\"]",
+        "priority": "HIGH"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": ["/app/test_reports/iteration_13.json"],
+  "action_items": [
+    "Review the Dashboard.jsx prop-rename fix (onMeteoClick → onInfoCenterClick). Already applied by testing agent — verify it matches your intended API.",
+    "Pre-existing minor: 2 x 401 console errors on initial /dashboard load (likely an /api/auth/me call before cookie is hydrated). Not introduced by this iteration but worth a glance."
+  ],
+  "critical_code_review_comments": [
+    "InfoCenter.jsx lazy-fetch cache works perfectly: each of /meteo/trails, /info/events, /info/transport, /info/safety is hit EXACTLY once per modal session, even after weather→events revisit (verified via page.on('request')).",
+    "InfoCenter.jsx uses queueMicrotask wrappers around setState inside .then/.catch/.finally — this is unusual and not strictly necessary since React 18+ batches updates; consider removing for readability, but it works correctly.",
+    "MapMauritius pin rename is good (data-testid=map-info-center), but the parent Dashboard.jsx was not updated in lockstep — classic rename leak. A grep for the old `onMeteoClick` name in the repo would have caught this in CI.",
+    "Transient label 'Registering…' on the book-transfer CTA flips back so fast (stub endpoint responds in <100ms) that even rAF sampling sometimes misses it. Functional state (`booking`/`setBooking`) and disabled attr are correctly wired — not a bug, just very fast UX."
+  ],
+  "updated_files": ["/app/frontend/src/pages/Dashboard.jsx"],
+  "success_rate": { "backend": "n/a (skipped)", "frontend": "100% (8/8 scenarios PASS)" },
+  "test_credentials": "admin@andeor.mu / AnDeor2026! (read from /app/memory/test_credentials.md)",
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Iter 22 Info Center modal is fully wired. The map pin is reachable via data-testid='map-info-center'. Dashboard passes onInfoCenterClick (fixed in this iter). Endpoints used: GET /meteo/trails, GET /info/events, GET /info/transport, GET /info/safety, POST /info/transport/book (stub returns AND-T-{epoch}). Lazy cache per tab confirmed via page.on('request'). RG2 avatar HUD testid is `avatar-hud-bubble` (not `avatar-hud`).",
+  "rca of the issue": {
+    "bug": "Clicking the Info Center map pin did not open the modal.",
+    "root_cause": "Pin component in MapMauritius.jsx (line 18) was renamed to expect prop `onInfoCenterClick`, but Dashboard.jsx (line 157) was still passing the old name `onMeteoClick`. The pin's onClick handler called `onInfoCenterClick && onInfoCenterClick()` — which was undefined, so the click was a no-op.",
+    "reproduction": "1) Login admin. 2) On /dashboard, click [data-testid=\"map-info-center\"]. Expected: modal opens. Actual (before fix): nothing happens, no console error, no API call.",
+    "fix_applied": "In /app/frontend/src/pages/Dashboard.jsx, renamed the prop on the MapMauritius JSX element from `onMeteoClick` to `onInfoCenterClick`. One-line edit. Hot-reload picked it up; subsequent test run opened the modal cleanly and all 8 scenarios passed."
+  },
+  "verified_scenarios": {
+    "INFO-1": "PASS — 4 tabs present: weather, events, transport, safety.",
+    "INFO-2": "PASS — 8 holidays (info-holiday-{date}), 4 events (info-event-{id}); time markers 'in N days' and tradition badges (Christian, Hindu, …) rendered.",
+    "INFO-3": "PASS — POST /api/info/transport/book → 200, reference AND-T-1780819577, toast 'Interest registered — ref AND-T-…' shown. info-rideshare/info-taxis/info-transit/info-road-advisories all rendered. Empty road_advisories rendered 'All roads clear right now' branch. Transient 'Registering…' label exists in code; flips back too fast (<100ms) to capture reliably but `booking` state + disabled wiring confirmed correct.",
+    "INFO-4": "PASS — info-cyclone data-cyclone-level=0, info-surf renders size+note, 6 beaches (le-morne/tamarin/flic-en-flac/grand-baie/blue-bay/belle-mare) each with valid data-rip-profile (low/moderate/high).",
+    "INFO-5": "PASS — Endpoint GET counts after navigating weather→events→transport→safety→weather→events: {/meteo/trails:1, /info/events:1, /info/transport:1, /info/safety:1}. Cache hit confirmed.",
+    "INFO-6": "PASS — Weather tab still renders info-current, info-forecast, info-trails.",
+    "RG1": "PASS — Closing returns to map (modal unmounted); reopening resets to weather tab (active=info-center-tab-weather).",
+    "RG2": "PASS — avatar-hud-bubble visible bottom-left; clicking it opens CharacterSheet (data-testid='character-sheet'); no z-index/event conflicts with Info Center."
+  }
+}

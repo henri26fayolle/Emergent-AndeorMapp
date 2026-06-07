@@ -154,7 +154,7 @@ export default function Dashboard() {
             focusedQuest={focused}
             focusedRegions={focusedRegions}
             focusedRemainingByRegion={focusedRemainingByRegion}
-            onMeteoClick={() => { playOpenScene(); setShowInfoCenter(true); }}
+            onInfoCenterClick={() => { playOpenScene(); setShowInfoCenter(true); }}
           />
         </div>
       </div>

@@ -1,9 +1,15 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Wind, Droplets, Thermometer, CloudSun, CloudFog, CloudRain, CloudLightning, Sun, Cloud, MapPin, AlertTriangle, CheckCircle2, Ban, Info } from "lucide-react";
+import {
+  X, Wind, Droplets, Thermometer, CloudSun, CloudFog, CloudRain, CloudLightning, Sun, Cloud,
+  MapPin, AlertTriangle, CheckCircle2, Ban, Info, CalendarDays, Bus, ShieldAlert,
+  Car, Phone, Sparkles, Waves, Anchor,
+} from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import { api, formatErr } from "@/lib/api";
-import { playClick } from "@/lib/sound";
+import { playClick, playChime } from "@/lib/sound";
+import { toast } from "sonner";
 
 // Map weather bucket → icon
 const WEATHER_ICON = {
@@ -28,11 +34,31 @@ const STATUS_STYLE = {
 
 // Tab catalog — designed to grow as new info modules ship
 const TABS = [
-  { id: "weather", label: "Weather & Trails", icon: CloudSun },
-  // Future: { id: "events",   label: "Events & Holidays", icon: CalendarDays },
-  // Future: { id: "transport", label: "Roads & Transport", icon: Bus },
-  // Future: { id: "advisories", label: "Safety Advisories", icon: ShieldAlert },
+  { id: "weather",   label: "Weather & Trails",   icon: CloudSun },
+  { id: "events",    label: "Events & Holidays",  icon: CalendarDays },
+  { id: "transport", label: "Roads & Transport",  icon: Bus },
+  { id: "safety",    label: "Safety Advisories",  icon: ShieldAlert },
 ];
+
+const TRADITION_STYLE = {
+  hindu:     { dot: "bg-sunset-500", label: "Hindu",     ring: "ring-sunset-500/40" },
+  tamil:     { dot: "bg-sun-500",    label: "Tamil",     ring: "ring-sun-500/40" },
+  muslim:    { dot: "bg-jungle-500", label: "Muslim",    ring: "ring-jungle-500/40" },
+  christian: { dot: "bg-ocean-700",  label: "Christian", ring: "ring-ocean-700/40" },
+  chinese:   { dot: "bg-sunset-600", label: "Chinese",   ring: "ring-sunset-600/40" },
+  sega:      { dot: "bg-sun-600",    label: "Séga",      ring: "ring-sun-600/40" },
+  creole:    { dot: "bg-jungle-700", label: "Creole",    ring: "ring-jungle-700/40" },
+  secular:   { dot: "bg-ink-700",    label: "National",  ring: "ring-ink-700/30" },
+};
+
+const RIP_STYLE = {
+  low:      { bg: "bg-jungle-500",  label: "Low rip risk",      Icon: CheckCircle2 },
+  moderate: { bg: "bg-sun-500",     label: "Moderate rip risk", Icon: AlertTriangle },
+  high:     { bg: "bg-sunset-500",  label: "High rip risk",     Icon: AlertTriangle },
+};
+
+// Endpoint each tab pulls from (module-scoped so the effect's dep array stays stable)
+const ENDPOINT = { weather: "/meteo/trails", events: "/info/events", transport: "/info/transport", safety: "/info/safety" };
 
 function formatDate(iso) {
   try {
@@ -50,25 +76,27 @@ function formatDate(iso) {
  */
 export default function InfoCenter({ open, onClose }) {
   const [tab, setTab] = useState(TABS[0].id);
-  const [data, setData] = useState(null);
+  // Per-tab cached payload so switching tabs doesn't re-fetch unnecessarily
+  const [payloads, setPayloads] = useState({ weather: null, events: null, transport: null, safety: null });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [booking, setBooking] = useState(false);
 
   // Reset to first tab when re-opened
   useEffect(() => { if (open) queueMicrotask(() => setTab(TABS[0].id)); }, [open]);
 
-  // Fetch the weather/trails payload — only when the Weather tab is active
-  // (lazy-fetch keeps future tabs from triggering this call)
+  // Lazy-fetch the active tab's payload only if we don't already have it
   useEffect(() => {
-    if (!open || tab !== "weather") return undefined;
+    if (!open) return undefined;
+    if (payloads[tab]) return undefined; // already loaded
     let cancelled = false;
     queueMicrotask(() => { setLoading(true); setError(null); });
-    api.get("/meteo/trails")
-      .then((r) => { if (!cancelled) queueMicrotask(() => setData(r.data)); })
+    api.get(ENDPOINT[tab])
+      .then((r) => { if (!cancelled) queueMicrotask(() => setPayloads((p) => ({ ...p, [tab]: r.data }))); })
       .catch((e) => { if (!cancelled) queueMicrotask(() => setError(formatErr(e.response?.data?.detail) || e.message)); })
       .finally(() => { if (!cancelled) queueMicrotask(() => setLoading(false)); });
     return () => { cancelled = true; };
-  }, [open, tab]);
+  }, [open, tab, payloads]);
 
   // Esc closes
   useEffect(() => {
@@ -78,7 +106,22 @@ export default function InfoCenter({ open, onClose }) {
     return () => window.removeEventListener("keydown", onKey, true);
   }, [open, onClose]);
 
+  const data = payloads.weather; // legacy alias for the weather payload
   const CurrentIcon = data ? (WEATHER_ICON[data.weather?.bucket] || CloudSun) : Info;
+
+  const bookTransfer = async () => {
+    if (booking) return;
+    setBooking(true);
+    try {
+      const { data: res } = await api.post("/info/transport/book");
+      try { playChime(); } catch { /* noop */ }
+      toast.success(`Interest registered — ref ${res.reference}`);
+    } catch (e) {
+      toast.error(formatErr(e.response?.data?.detail) || e.message);
+    } finally {
+      setBooking(false);
+    }
+  };
 
   return (
     <AnimatePresence>
@@ -159,16 +202,8 @@ export default function InfoCenter({ open, onClose }) {
               {/* Body */}
               <div className="relative flex-1 overflow-y-auto px-4 sm:px-6 py-5 paper-bg space-y-6" data-testid="info-center-body">
                 <TabsContent value="weather" className="m-0 space-y-6 focus-visible:outline-none">
-                  {loading && (
-                    <div className="text-center py-14 text-ink-700 italic" data-testid="info-center-loading">
-                      Calling the information center…
-                    </div>
-                  )}
-                  {error && (
-                    <div className="text-center py-14 text-sunset-600 italic" data-testid="info-center-error">
-                      Couldn&rsquo;t reach the station. {error}
-                    </div>
-                  )}
+                  {tab === "weather" && loading && <Loader label="Calling the information center…" testid="info-center-loading" />}
+                  {tab === "weather" && error && <ErrorBanner error={error} />}
 
                   {data && !loading && !error && (
                     <>
@@ -261,7 +296,237 @@ export default function InfoCenter({ open, onClose }) {
                   )}
                 </TabsContent>
 
-                {/* Future tabs slot in here — placeholder structure for clean growth */}
+                {/* ===== EVENTS & HOLIDAYS ============================== */}
+                <TabsContent value="events" className="m-0 space-y-6 focus-visible:outline-none">
+                  {tab === "events" && loading && <Loader label="Reading the island's calendar…" testid="info-center-loading-events" />}
+                  {tab === "events" && error && <ErrorBanner error={error} />}
+                  {tab === "events" && payloads.events && (
+                    <>
+                      <section data-testid="info-holidays">
+                        <h3 className="font-display text-lg italic text-ink-900 mb-3">Upcoming public holidays</h3>
+                        <div className="space-y-2.5">
+                          {(payloads.events.holidays || []).map((h) => {
+                            const t = TRADITION_STYLE[h.tradition] || TRADITION_STYLE.secular;
+                            return (
+                              <div
+                                key={`${h.date}-${h.name}`}
+                                data-testid={`info-holiday-${h.date}`}
+                                className={`rounded-2xl border-2 border-jungle-700/15 bg-sand-100/90 p-3.5 flex items-start gap-3 ring-2 ring-offset-2 ring-offset-sand-100 ${t.ring}`}
+                              >
+                                <div className="shrink-0 text-center w-14">
+                                  <div className="text-[10px] tracking-[0.2em] uppercase font-bold text-ink-700">{new Date(h.date).toLocaleDateString("en-GB", { month: "short" })}</div>
+                                  <div className="font-display text-2xl italic text-ink-900 leading-none">{new Date(h.date).getDate()}</div>
+                                  <div className="text-[10px] tracking-[0.15em] uppercase text-ink-700/80">{h.weekday?.slice(0, 3)}</div>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="font-display text-base italic text-ink-900 leading-tight">{h.name}</span>
+                                    <span className={`rounded-full px-2 py-0.5 text-[9px] tracking-[0.2em] uppercase font-bold text-white ${t.dot}`}>{t.label}</span>
+                                  </div>
+                                  <div className="text-[10px] tracking-[0.18em] uppercase font-bold text-ink-700 mt-0.5">
+                                    {h.days_until === 0 ? "Today" : h.days_until === 1 ? "Tomorrow" : `in ${h.days_until} days`}
+                                  </div>
+                                  <div className="text-sm text-ink-700 mt-1.5 italic leading-snug">{h.note}</div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </section>
+
+                      <section data-testid="info-events">
+                        <h3 className="font-display text-lg italic text-ink-900 mb-3">Recurring cultural events</h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {(payloads.events.events || []).map((e) => {
+                            const t = TRADITION_STYLE[e.tradition] || TRADITION_STYLE.secular;
+                            return (
+                              <div
+                                key={e.event_id}
+                                data-testid={`info-event-${e.event_id}`}
+                                className="rounded-2xl border-2 border-jungle-700/15 bg-sand-100/90 p-3.5"
+                              >
+                                <div className="flex items-center gap-2 mb-1.5">
+                                  <span className={`w-2.5 h-2.5 rounded-full ${t.dot}`} aria-hidden />
+                                  <span className="text-[10px] tracking-[0.2em] uppercase font-bold text-ink-700">{e.venue}</span>
+                                </div>
+                                <div className="font-display text-base italic text-ink-900 leading-tight">{e.title}</div>
+                                <div className="text-[11px] tracking-[0.15em] uppercase text-ocean-700 font-bold mt-1">{e.when_pattern}</div>
+                                <div className="text-sm text-ink-700 mt-1.5 italic leading-snug">{e.tagline}</div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </section>
+                    </>
+                  )}
+                </TabsContent>
+
+                {/* ===== ROADS & TRANSPORT ============================== */}
+                <TabsContent value="transport" className="m-0 space-y-6 focus-visible:outline-none">
+                  {tab === "transport" && loading && <Loader label="Calling the transfer desk…" testid="info-center-loading-transport" />}
+                  {tab === "transport" && error && <ErrorBanner error={error} />}
+                  {tab === "transport" && payloads.transport && (
+                    <>
+                      {/* Partner transfer CTA */}
+                      <section data-testid="info-book-transfer" className="rounded-2xl border-2 border-ocean-700/30 bg-gradient-to-br from-ocean-700 to-ocean-500 text-sand-100 p-5">
+                        <div className="flex items-start gap-4 flex-wrap">
+                          <div className="w-12 h-12 rounded-2xl bg-sand-100/15 ring-2 ring-sand-100/40 flex items-center justify-center shrink-0">
+                            <Car className="w-6 h-6" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-[10px] tracking-[0.3em] uppercase font-bold opacity-80">An Deor Transfers · {payloads.transport.partner_transfer_app?.status === "coming_soon" ? "Beta soon" : "Live"}</div>
+                            <h3 className="font-display text-xl italic leading-tight">Book a transfer from anywhere on the island</h3>
+                            <p className="text-sm opacity-90 mt-1.5 italic leading-snug">{payloads.transport.partner_transfer_app?.note}</p>
+                          </div>
+                          <Button
+                            onClick={bookTransfer}
+                            disabled={booking}
+                            data-testid="info-book-transfer-cta"
+                            className="rounded-full bg-sand-100 text-ocean-700 hover:bg-sand-200 font-bold tracking-[0.15em] uppercase text-xs px-5 shadow-clay"
+                          >
+                            {booking ? "Registering…" : "Book a transfer"} <Sparkles className="w-3.5 h-3.5 ml-1" />
+                          </Button>
+                        </div>
+                      </section>
+
+                      {/* Ride-share */}
+                      <section data-testid="info-rideshare">
+                        <h3 className="font-display text-lg italic text-ink-900 mb-3">Ride-share & on-demand</h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          {(payloads.transport.rideshare || []).map((r) => (
+                            <div key={r.name} data-testid={`info-rideshare-${r.name.toLowerCase().replace(/\s+/g, "-")}`} className="rounded-2xl border-2 border-jungle-700/15 bg-sand-100/90 p-3.5">
+                              <div className="text-[10px] tracking-[0.2em] uppercase font-bold text-ocean-700">{r.kind}</div>
+                              <div className="font-display text-base italic text-ink-900 leading-tight mt-0.5">{r.name}</div>
+                              <a href={`tel:${r.phone}`} className="inline-flex items-center gap-1.5 text-sm text-jungle-700 hover:text-jungle-500 mt-1.5 font-bold tabular-nums">
+                                <Phone className="w-3.5 h-3.5" /> {r.phone}
+                              </a>
+                              <div className="text-xs text-ink-700 mt-1.5 italic leading-snug">{r.note}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </section>
+
+                      {/* Taxis */}
+                      <section data-testid="info-taxis">
+                        <h3 className="font-display text-lg italic text-ink-900 mb-3">Trusted taxi stands</h3>
+                        <div className="space-y-2.5">
+                          {(payloads.transport.taxis || []).map((t) => (
+                            <div key={t.name} data-testid={`info-taxi-${t.name.toLowerCase().replace(/\s+/g, "-")}`} className="rounded-2xl border-2 border-jungle-700/15 bg-sand-100/90 p-3.5 flex items-start gap-3 flex-wrap">
+                              <div className="flex-1 min-w-0">
+                                <div className="font-display text-base italic text-ink-900 leading-tight">{t.name}</div>
+                                <div className="text-[11px] tracking-[0.15em] uppercase text-ink-700 font-bold mt-0.5">{t.where}</div>
+                                <div className="text-sm text-ink-700 italic mt-1">{t.note}</div>
+                              </div>
+                              <a href={`tel:${t.phone}`} className="inline-flex items-center gap-1.5 text-sm text-jungle-700 hover:text-jungle-500 font-bold tabular-nums shrink-0">
+                                <Phone className="w-3.5 h-3.5" /> {t.phone}
+                              </a>
+                            </div>
+                          ))}
+                        </div>
+                      </section>
+
+                      {/* Public transit tips */}
+                      <section data-testid="info-transit">
+                        <h3 className="font-display text-lg italic text-ink-900 mb-3">Public transport tips</h3>
+                        <ul className="space-y-2">
+                          {(payloads.transport.public_transit_tips || []).map((tip, i) => (
+                            <li key={i} className="flex items-start gap-2 text-sm text-ink-700">
+                              <Bus className="w-4 h-4 text-ocean-700 shrink-0 mt-0.5" />
+                              <span className="italic leading-snug">{tip}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </section>
+
+                      {/* Road advisories */}
+                      <section data-testid="info-road-advisories">
+                        <h3 className="font-display text-lg italic text-ink-900 mb-3">Road advisories</h3>
+                        {(payloads.transport.road_advisories || []).length === 0 ? (
+                          <div className="rounded-2xl border-2 border-jungle-500/30 bg-jungle-500/5 p-4 text-sm text-jungle-700 italic">
+                            All roads clear right now — no active advisories.
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            {payloads.transport.road_advisories.map((a, i) => (
+                              <div key={i} className="rounded-2xl border-2 border-sun-500/40 bg-sand-100/90 p-3.5">
+                                <div className="font-display text-base italic text-ink-900">{a.road}</div>
+                                <div className="text-sm text-ink-700 italic mt-1">{a.note}</div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </section>
+                    </>
+                  )}
+                </TabsContent>
+
+                {/* ===== SAFETY ADVISORIES ============================== */}
+                <TabsContent value="safety" className="m-0 space-y-6 focus-visible:outline-none">
+                  {tab === "safety" && loading && <Loader label="Pulling the sea & sky bulletin…" testid="info-center-loading-safety" />}
+                  {tab === "safety" && error && <ErrorBanner error={error} />}
+                  {tab === "safety" && payloads.safety && (
+                    <>
+                      {/* Cyclone level */}
+                      <section
+                        data-testid="info-cyclone"
+                        data-cyclone-level={payloads.safety.cyclone?.level}
+                        className="rounded-2xl border-2 p-5 flex items-center gap-4"
+                        style={{ borderColor: payloads.safety.cyclone?.color, background: `${payloads.safety.cyclone?.color}15` }}
+                      >
+                        <div className="w-14 h-14 rounded-full text-white flex items-center justify-center shrink-0 shadow-clay" style={{ background: payloads.safety.cyclone?.color }}>
+                          <ShieldAlert className="w-7 h-7" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[10px] tracking-[0.3em] uppercase font-bold text-ink-700">Cyclone warning level</div>
+                          <div className="font-display text-xl italic text-ink-900 leading-tight">{payloads.safety.cyclone?.label}</div>
+                          <div className="text-sm text-ink-700 italic mt-1 leading-snug">{payloads.safety.cyclone?.note}</div>
+                        </div>
+                      </section>
+
+                      {/* Surf */}
+                      <section data-testid="info-surf" className="rounded-2xl border-2 border-ocean-700/30 bg-sand-100/90 p-5 flex items-center gap-4">
+                        <Waves className="w-12 h-12 text-ocean-700 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[10px] tracking-[0.3em] uppercase font-bold text-ink-700">West-coast surf report</div>
+                          <div className="font-display text-xl italic text-ink-900 leading-tight">{payloads.safety.surf?.size}</div>
+                          <div className="text-sm text-ink-700 italic mt-1 leading-snug">{payloads.safety.surf?.note}</div>
+                        </div>
+                      </section>
+
+                      {/* Beaches & rip currents */}
+                      <section data-testid="info-beaches">
+                        <h3 className="font-display text-lg italic text-ink-900 mb-3">Beaches — rip-current profile</h3>
+                        <div className="space-y-2.5">
+                          {(payloads.safety.beaches || []).map((b) => {
+                            const r = RIP_STYLE[b.rip_profile] || RIP_STYLE.low;
+                            return (
+                              <div
+                                key={b.beach_id}
+                                data-testid={`info-beach-${b.beach_id}`}
+                                data-rip-profile={b.rip_profile}
+                                className="rounded-2xl border-2 border-jungle-700/15 bg-sand-100/90 p-3.5 flex items-start gap-3"
+                              >
+                                <div className={`w-10 h-10 rounded-xl ${r.bg} text-white flex items-center justify-center shrink-0 shadow-clay`}>
+                                  <Anchor className="w-5 h-5" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="font-display text-base italic text-ink-900 leading-tight">{b.name}</span>
+                                    <span className={`rounded-full px-2 py-0.5 text-[9px] tracking-[0.2em] uppercase font-bold text-white ${r.bg}`}>{r.label}</span>
+                                  </div>
+                                  <div className="text-sm text-ink-700 mt-1.5 italic leading-snug">{b.note}</div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <div className="mt-3 flex items-center gap-2 text-[10px] tracking-[0.2em] uppercase text-ink-700/80 font-bold">
+                          <MapPin className="w-3 h-3" /> Cyclone & surf signals are auto-derived from Vacoas wind data
+                        </div>
+                      </section>
+                    </>
+                  )}
+                </TabsContent>
               </div>
             </Tabs>
           </motion.div>
@@ -279,6 +544,22 @@ function Stat({ icon: Icon, label, value }) {
         <div className="text-[10px] tracking-[0.25em] uppercase font-bold text-ink-700">{label}</div>
         <div className="font-display italic text-ink-900 leading-tight">{value}</div>
       </div>
+    </div>
+  );
+}
+
+function Loader({ label, testid }) {
+  return (
+    <div className="text-center py-14 text-ink-700 italic" data-testid={testid}>
+      {label}
+    </div>
+  );
+}
+
+function ErrorBanner({ error }) {
+  return (
+    <div className="text-center py-14 text-sunset-600 italic" data-testid="info-center-error">
+      Couldn&rsquo;t reach the station. {error}
     </div>
   );
 }
