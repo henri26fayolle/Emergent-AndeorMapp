@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { findAvatar } from "@/lib/avatars";
 import { playChime, playClick, playUnlock } from "@/lib/sound";
+import { resolveAudioContext, withAudioContext } from "@/lib/context";
 
 const THEME_BG = {
   jungle: "from-[#0E3E2D] via-[#125538] to-[#1B6F4B]",
@@ -63,15 +64,24 @@ export default function TrailEpilogue({ epilogue, onClose }) {
   useEffect(() => {
     if (!epilogue) return;
     try { playChime(); } catch { /* noop */ }
-    const url = `${api.defaults.baseURL}/self-guided/${epilogue.journey_id}/epilogue-audio`;
-    audioRef.current = new Audio();
-    audioRef.current.preload = "auto";
-    audioRef.current.src = url;
-    audioRef.current.addEventListener("play",  () => setPlaying(true));
-    audioRef.current.addEventListener("pause", () => setPlaying(false));
-    audioRef.current.addEventListener("ended", () => setPlaying(false));
-    audioRef.current.play().catch(() => { /* autoplay denied — user must tap */ });
+    let cancelled = false;
+    (async () => {
+      const ctx = await resolveAudioContext();
+      if (cancelled) return;
+      const url = withAudioContext(
+        `${api.defaults.baseURL}/self-guided/${epilogue.journey_id}/epilogue-audio`,
+        ctx,
+      );
+      audioRef.current = new Audio();
+      audioRef.current.preload = "auto";
+      audioRef.current.src = url;
+      audioRef.current.addEventListener("play",  () => setPlaying(true));
+      audioRef.current.addEventListener("pause", () => setPlaying(false));
+      audioRef.current.addEventListener("ended", () => setPlaying(false));
+      audioRef.current.play().catch(() => { /* autoplay denied — user must tap */ });
+    })();
     return () => {
+      cancelled = true;
       if (audioRef.current) {
         try { audioRef.current.pause(); } catch { /* noop */ }
       }

@@ -198,13 +198,61 @@ def _serialize(doc: dict) -> dict:
     return doc
 
 
-def _stop_audio_path(journey_id: str, stop_id: str) -> Path:
-    safe = f"sg__{journey_id}__{stop_id}.mp3".replace("/", "_")
+# ---- Time-of-day & weather-aware lore ------------------------------------
+# Coarse buckets the frontend sends as `?tod=...&weather=...` to fetch a variant.
+VALID_TOD = {"dawn", "morning", "midday", "golden_hour", "dusk", "night"}
+VALID_WEATHER = {"clear", "cloudy", "fog", "rain", "thunder"}
+
+# Short opening phrase woven in front of the lore. Theme-flavored where useful.
+TOD_PHRASES = {
+    "dawn":        "The island is just waking up — the colours are still uncertain. ",
+    "morning":     "The morning light is honest and golden here. ",
+    "midday":      "The sun is high and the shadows are short. Slow your breath. ",
+    "golden_hour": "The light has gone soft and amber — the island is showing off now. ",
+    "dusk":        "The day is folding itself away. Listen carefully — the island speaks quieter at dusk. ",
+    "night":       "The stars are out, and the trade wind is the only thing still working. ",
+}
+
+WEATHER_PHRASES = {
+    "clear":   "The sky is clean above you. ",
+    "cloudy":  "The clouds are pulling a soft grey blanket over the island. ",
+    "fog":     "The mist is doing its slow magic — even familiar paths feel new. ",
+    "rain":    "The rain is rinsing the world for you, traveler — the smell of wet earth is part of the story. ",
+    "thunder": "Thunder is rolling across the island — keep to shelter, but listen: she sings loudest in storms. ",
+}
+
+
+def _ctx_key(tod: Optional[str], weather: Optional[str]) -> str:
+    """Compact, filesystem-safe context suffix for cache filenames."""
+    t = tod if tod in VALID_TOD else "any"
+    w = weather if weather in VALID_WEATHER else "any"
+    if t == "any" and w == "any":
+        return ""
+    return f"__{t}__{w}"
+
+
+def _ctx_phrase(tod: Optional[str], weather: Optional[str]) -> str:
+    out = ""
+    if tod in VALID_TOD:
+        out += TOD_PHRASES[tod]
+    if weather in VALID_WEATHER and weather != "clear":
+        # "clear" is the default mood — skip phrase to keep narration tight
+        out += WEATHER_PHRASES[weather]
+    return out
+
+
+def _stop_audio_path(journey_id: str, stop_id: str, tod: Optional[str] = None, weather: Optional[str] = None) -> Path:
+    safe = f"sg__{journey_id}__{stop_id}{_ctx_key(tod, weather)}.mp3".replace("/", "_")
     return SG_AUDIO_DIR / safe
 
 
-def _journey_intro_audio_path(journey_id: str) -> Path:
-    safe = f"sg__{journey_id}__intro.mp3".replace("/", "_")
+def _journey_intro_audio_path(journey_id: str, tod: Optional[str] = None, weather: Optional[str] = None) -> Path:
+    safe = f"sg__{journey_id}__intro{_ctx_key(tod, weather)}.mp3".replace("/", "_")
+    return SG_AUDIO_DIR / safe
+
+
+def _journey_epilogue_audio_path(journey_id: str, tod: Optional[str] = None, weather: Optional[str] = None) -> Path:
+    safe = f"sg__{journey_id}__epilogue{_ctx_key(tod, weather)}.mp3".replace("/", "_")
     return SG_AUDIO_DIR / safe
 
 
@@ -234,25 +282,25 @@ async def _generate_tts(target: Path, script: str, label: str) -> Path:
     return target
 
 
-async def _ensure_stop_audio(journey: dict, stop: dict) -> Path:
+async def _ensure_stop_audio(journey: dict, stop: dict, tod: Optional[str] = None, weather: Optional[str] = None) -> Path:
     """Generate (and cache) Ti Dodo's narration for one stop. Returns the file path."""
-    target = _stop_audio_path(journey["journey_id"], stop["stop_id"])
-    script = f"{stop['name']}. {stop.get('lore', '')}"
-    return await _generate_tts(target, script, f"sg-stop {journey['journey_id']}/{stop['stop_id']}")
+    target = _stop_audio_path(journey["journey_id"], stop["stop_id"], tod, weather)
+    script = f"{_ctx_phrase(tod, weather)}{stop['name']}. {stop.get('lore', '')}"
+    return await _generate_tts(target, script, f"sg-stop {journey['journey_id']}/{stop['stop_id']}{_ctx_key(tod, weather)}")
 
 
-async def _ensure_journey_epilogue_audio(journey: dict) -> Path:
+async def _ensure_journey_epilogue_audio(journey: dict, tod: Optional[str] = None, weather: Optional[str] = None) -> Path:
     """Generate (and cache) Ti Dodo's farewell monologue for the journey."""
-    target = SG_AUDIO_DIR / f"sg__{journey['journey_id']}__epilogue.mp3".replace("/", "_")
-    script = f"{journey.get('title_earned', '')}. {journey.get('epilogue', '')}"
-    return await _generate_tts(target, script, f"sg-epilogue {journey['journey_id']}")
+    target = _journey_epilogue_audio_path(journey["journey_id"], tod, weather)
+    script = f"{_ctx_phrase(tod, weather)}{journey.get('title_earned', '')}. {journey.get('epilogue', '')}"
+    return await _generate_tts(target, script, f"sg-epilogue {journey['journey_id']}{_ctx_key(tod, weather)}")
 
 
-async def _ensure_journey_intro_audio(journey: dict) -> Path:
+async def _ensure_journey_intro_audio(journey: dict, tod: Optional[str] = None, weather: Optional[str] = None) -> Path:
     """Generate (and cache) Ti Dodo's intro monologue for the journey."""
-    target = _journey_intro_audio_path(journey["journey_id"])
-    script = f"{journey['title']}. {journey.get('lore_intro', '')}"
-    return await _generate_tts(target, script, f"sg-intro {journey['journey_id']}")
+    target = _journey_intro_audio_path(journey["journey_id"], tod, weather)
+    script = f"{_ctx_phrase(tod, weather)}{journey['title']}. {journey.get('lore_intro', '')}"
+    return await _generate_tts(target, script, f"sg-intro {journey['journey_id']}{_ctx_key(tod, weather)}")
 
 
 def _journey_gpx(j: dict) -> str:
@@ -333,16 +381,22 @@ def build_router(db, get_current_user) -> APIRouter:
         )
 
     @router.get("/{journey_id}/stops/{stop_id}/audio")
-    async def stop_audio(journey_id: str, stop_id: str):
+    async def stop_audio(
+        journey_id: str,
+        stop_id: str,
+        tod: Optional[str] = None,
+        weather: Optional[str] = None,
+    ):
         """Ti Dodo narrates the stop's lore — 25–40s MP3, cached on first request.
-        Public (no auth) so the browser `<audio>` element streams it cleanly."""
+        Public (no auth) so the browser `<audio>` element streams it cleanly.
+        Optional `tod` (time-of-day) and `weather` query params unlock context-aware variants."""
         j = await db.self_guided.find_one({"journey_id": journey_id}, {"_id": 0})
         if not j:
             raise HTTPException(404, "Journey not found")
         stop = next((s for s in j["stops"] if s["stop_id"] == stop_id), None)
         if not stop:
             raise HTTPException(404, "Stop not found")
-        path = await _ensure_stop_audio(j, stop)
+        path = await _ensure_stop_audio(j, stop, tod, weather)
         return FileResponse(
             path,
             media_type="audio/mpeg",
@@ -350,12 +404,16 @@ def build_router(db, get_current_user) -> APIRouter:
         )
 
     @router.get("/{journey_id}/intro-audio")
-    async def journey_intro_audio(journey_id: str):
+    async def journey_intro_audio(
+        journey_id: str,
+        tod: Optional[str] = None,
+        weather: Optional[str] = None,
+    ):
         """Ti Dodo narrates the journey's intro monologue — sets the mood before the player starts."""
         j = await db.self_guided.find_one({"journey_id": journey_id}, {"_id": 0})
         if not j:
             raise HTTPException(404, "Journey not found")
-        path = await _ensure_journey_intro_audio(j)
+        path = await _ensure_journey_intro_audio(j, tod, weather)
         return FileResponse(
             path,
             media_type="audio/mpeg",
@@ -363,12 +421,16 @@ def build_router(db, get_current_user) -> APIRouter:
         )
 
     @router.get("/{journey_id}/epilogue-audio")
-    async def journey_epilogue_audio(journey_id: str):
+    async def journey_epilogue_audio(
+        journey_id: str,
+        tod: Optional[str] = None,
+        weather: Optional[str] = None,
+    ):
         """Ti Dodo's farewell monologue — plays at the end of a completed trail."""
         j = await db.self_guided.find_one({"journey_id": journey_id}, {"_id": 0})
         if not j:
             raise HTTPException(404, "Journey not found")
-        path = await _ensure_journey_epilogue_audio(j)
+        path = await _ensure_journey_epilogue_audio(j, tod, weather)
         return FileResponse(
             path,
             media_type="audio/mpeg",

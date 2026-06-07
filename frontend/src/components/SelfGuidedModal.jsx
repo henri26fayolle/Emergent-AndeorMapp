@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { api, formatErr } from "@/lib/api";
 import { toast } from "sonner";
 import { playClick, playChime } from "@/lib/sound";
+import { resolveAudioContext, withAudioContext } from "@/lib/context";
 
 const THEME = {
   jungle: "#1B6F4B",
@@ -49,7 +50,8 @@ export default function SelfGuidedModal({ open, journeyId, onClose, onActivated 
       audioRef.current.pause();
       return;
     }
-    const url = `${api.defaults.baseURL}/self-guided/${journeyId}/intro-audio`;
+    const ctx = await resolveAudioContext();
+    const url = withAudioContext(`${api.defaults.baseURL}/self-guided/${journeyId}/intro-audio`, ctx);
     try {
       if (!audioRef.current) {
         audioRef.current = new Audio();

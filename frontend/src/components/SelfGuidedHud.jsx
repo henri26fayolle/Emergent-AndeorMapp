@@ -6,6 +6,7 @@ import { api, formatErr } from "@/lib/api";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { playChime, playClick, playUnlock } from "@/lib/sound";
+import { resolveAudioContext, withAudioContext } from "@/lib/context";
 
 const THEME = {
   jungle: "#1B6F4B",
@@ -85,7 +86,9 @@ export default function SelfGuidedHud() {
   // playStopAudio is memoised so the auto-play effect below only fires when truly needed.
   const playStopAudio = useCallback(async (stop) => {
     if (!journey || !stop) return;
-    const url = `${api.defaults.baseURL}/self-guided/${journey.journey_id}/stops/${stop.stop_id}/audio`;
+    const ctx = await resolveAudioContext({ lat: pos?.lat, lon: pos?.lon });
+    const base = `${api.defaults.baseURL}/self-guided/${journey.journey_id}/stops/${stop.stop_id}/audio`;
+    const url = withAudioContext(base, ctx);
     try {
       if (!audioRef.current) {
         audioRef.current = new Audio();
@@ -99,7 +102,7 @@ export default function SelfGuidedHud() {
     } catch {
       /* autoplay denied — user must tap, the controls below still work */
     }
-  }, [journey]);
+  }, [journey, pos?.lat, pos?.lon]);
 
   // Hands-free auto-play: when GPS shows we're within 200 m of the next stop and we haven't
   // played that stop yet in this trail session, fire the narration.
