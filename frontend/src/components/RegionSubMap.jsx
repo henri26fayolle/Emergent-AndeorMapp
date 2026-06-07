@@ -7,6 +7,7 @@ import { playOpenScene, playSelect, playClick } from "@/lib/sound";
 import VenueModal from "@/components/VenueModal";
 import AvatarHud from "@/components/AvatarHud";
 import SelfGuidedModal from "@/components/SelfGuidedModal";
+import SelfGuidedPinPreview from "@/components/SelfGuidedPinPreview";
 import { api } from "@/lib/api";
 
 /**
@@ -45,6 +46,14 @@ export default function RegionSubMap({
   const [openTourId, setOpenTourId] = useState(null);
   const [journeys, setJourneys] = useState([]);
   const [openJourneyId, setOpenJourneyId] = useState(null);
+  // Per-pin popover preview — { journey_id, stop_id }
+  const [openStop, setOpenStop] = useState(null);
+
+  const refreshJourneys = () => {
+    api.get("/self-guided")
+      .then((r) => setJourneys((r.data || []).filter((j) => j.subregion === subregion)))
+      .catch(() => { /* noop */ });
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -200,10 +209,15 @@ export default function RegionSubMap({
                         const x = s.city_x ?? 50;
                         const y = s.city_y ?? 50;
                         const done = completed.has(s.stop_id);
+                        const isPreviewing = openStop?.journey_id === j.journey_id && openStop?.stop_id === s.stop_id;
                         return (
                           <motion.button
                             key={s.stop_id}
-                            onClick={(e) => { e.stopPropagation(); playSelect(); setOpenJourneyId(j.journey_id); }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              playSelect();
+                              setOpenStop(isPreviewing ? null : { journey_id: j.journey_id, stop_id: s.stop_id });
+                            }}
                             initial={{ opacity: 0, scale: 0.4 }}
                             animate={{ opacity: 1, scale: 1 }}
                             transition={{ delay: 0.45 + idx * 0.07, duration: 0.35, ease: "backOut" }}
@@ -214,13 +228,15 @@ export default function RegionSubMap({
                             data-testid={`${testIdPrefix}-sg-stop-${s.stop_id}`}
                             title={s.name}
                           >
-                            {/* Tooltip */}
-                            <div className="absolute left-1/2 bottom-full mb-2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                              <div className="relative rounded-2xl shadow-lift px-3 py-1.5 whitespace-nowrap max-w-[16rem]" style={{ background: themeJ, color: "#FFF7E2" }}>
-                                <div className="font-display text-xs italic">{s.name}</div>
-                                <div className="text-[9px] tracking-[0.25em] uppercase opacity-85">{j.title} · stop {idx + 1}/{j.stops.length}</div>
+                            {/* Tooltip — hidden while the popover is open for this pin */}
+                            {!isPreviewing && (
+                              <div className="absolute left-1/2 bottom-full mb-2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                <div className="relative rounded-2xl shadow-lift px-3 py-1.5 whitespace-nowrap max-w-[16rem]" style={{ background: themeJ, color: "#FFF7E2" }}>
+                                  <div className="font-display text-xs italic">{s.name}</div>
+                                  <div className="text-[9px] tracking-[0.25em] uppercase opacity-85">{j.title} · stop {idx + 1}/{j.stops.length}</div>
+                                </div>
                               </div>
-                            </div>
+                            )}
                             <div
                               className="w-7 h-7 lg:w-8 lg:h-8 rounded-full flex items-center justify-center border-2 border-dashed bg-sand-100/95 backdrop-blur"
                               style={{ borderColor: themeJ, boxShadow: done ? `0 0 0 2px ${themeJ}, 0 4px 10px rgba(0,0,0,0.3)` : "0 4px 10px rgba(0,0,0,0.25)" }}
@@ -236,6 +252,25 @@ export default function RegionSubMap({
                           </motion.button>
                         );
                       })}
+
+                      {/* Per-pin popover — at most one open at a time, anchored within this journey's container */}
+                      {openStop?.journey_id === j.journey_id && (() => {
+                        const sIdx = j.stops.findIndex((s) => s.stop_id === openStop.stop_id);
+                        if (sIdx < 0) return null;
+                        const s = j.stops[sIdx];
+                        return (
+                          <SelfGuidedPinPreview
+                            journey={j}
+                            stop={s}
+                            idx={sIdx}
+                            themeHex={themeJ}
+                            done={completed.has(s.stop_id)}
+                            onClose={() => setOpenStop(null)}
+                            onOpenFullJourney={() => { setOpenStop(null); setOpenJourneyId(j.journey_id); }}
+                            onStarted={() => { refreshJourneys(); refresh && refresh(); }}
+                          />
+                        );
+                      })()}
                     </div>
                   );
                 })}
