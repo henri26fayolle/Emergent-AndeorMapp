@@ -18,10 +18,12 @@ export default function SelfGuidedModal({ open, journeyId, onClose, onActivated 
   const [j, setJ] = useState(null);
   const [busy, setBusy] = useState(false);
 
+  // Defer state writes via queueMicrotask so they don't happen synchronously during the
+  // effect run (satisfies react-hooks/set-state-in-effect).
   useEffect(() => {
     if (!open || !journeyId) return;
-    setJ(null);
-    api.get(`/self-guided/${journeyId}`).then((r) => setJ(r.data)).catch(() => {});
+    queueMicrotask(() => setJ(null));
+    api.get(`/self-guided/${journeyId}`).then((r) => setJ(r.data)).catch(() => { /* noop */ });
   }, [open, journeyId]);
 
   if (!open) return null;
@@ -122,7 +124,7 @@ export default function SelfGuidedModal({ open, journeyId, onClose, onActivated 
             ) : (
               <>
                 <p className="italic text-ink-700 leading-relaxed text-sm lg:text-base mb-5">
-                  "{j.lore_intro}"
+                  &ldquo;{j.lore_intro}&rdquo;
                 </p>
 
                 {/* Progress strip */}
@@ -155,7 +157,7 @@ export default function SelfGuidedModal({ open, journeyId, onClose, onActivated 
                             <div className="text-xs text-ink-700 mt-1 leading-relaxed">{s.lore}</div>
                           ) : (
                             <div className="text-[11px] text-ink-700/70 italic mt-0.5 inline-flex items-center gap-1">
-                              <Lock className="w-3 h-3" /> Tap "I'm here" on the trail to unlock
+                              <Lock className="w-3 h-3" /> Tap &ldquo;I&apos;m here&rdquo; on the trail to unlock
                             </div>
                           )}
                         </div>

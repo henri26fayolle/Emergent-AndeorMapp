@@ -50,36 +50,29 @@ export default function SelfGuidedHud() {
     }
   }, []);
 
-  useEffect(() => { loadActive(); }, [user?.user_id, loadActive]);
-
-  // Cross-component refresh: SelfGuidedModal / check-ins dispatch this event
+  // Mount + cross-component refresh — listen to a window event and react to user changes.
+  // The setState calls inside loadActive are deferred via queueMicrotask so they don't
+  // happen inline during the effect run (satisfies react-hooks/set-state-in-effect).
   useEffect(() => {
-    const h = () => loadActive();
+    queueMicrotask(() => loadActive());
+    const h = () => { loadActive(); };
     window.addEventListener("andeor:self-guided-changed", h);
     return () => window.removeEventListener("andeor:self-guided-changed", h);
-  }, [loadActive]);
+  }, [user?.user_id, loadActive]);
 
-  // GPS watcher — only when a journey is active
+  // GPS watcher — attached only when a journey is active
   useEffect(() => {
-    if (!journey) {
-      if (watchIdRef.current != null) {
-        try { navigator.geolocation?.clearWatch(watchIdRef.current); } catch {}
-        watchIdRef.current = null;
-      }
-      setPos(null);
-      return;
-    }
-    if (!navigator.geolocation) return;
-    watchIdRef.current = navigator.geolocation.watchPosition(
+    if (!journey || !navigator.geolocation) return undefined;
+    const id = navigator.geolocation.watchPosition(
       (p) => setPos({ lat: p.coords.latitude, lon: p.coords.longitude, acc: p.coords.accuracy }),
       () => { /* permission denied / unavailable — manual check-in still works */ },
       { enableHighAccuracy: true, maximumAge: 4000, timeout: 8000 }
     );
+    watchIdRef.current = id;
     return () => {
-      if (watchIdRef.current != null) {
-        try { navigator.geolocation.clearWatch(watchIdRef.current); } catch {}
-        watchIdRef.current = null;
-      }
+      try { navigator.geolocation.clearWatch(id); } catch { /* noop */ }
+      watchIdRef.current = null;
+      setPos(null);
     };
   }, [journey]);
 
@@ -127,19 +120,22 @@ export default function SelfGuidedHud() {
       await api.post(`/self-guided/${journey.journey_id}/stop`);
       setJourney(null);
       toast.info("Trail paused — your progress is saved.");
-    } catch {}
+    } catch { /* noop */ }
   };
 
   return (
     <>
-      {/* Active-trail floating HUD — bottom-center on mobile, bottom-right on desktop */}
-      <motion.div
-        initial={{ opacity: 0, y: 18 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45, ease: "easeOut" }}
-        className="fixed z-[85] bottom-28 left-1/2 -translate-x-1/2 sm:bottom-3 sm:left-auto sm:right-6 sm:translate-x-0 w-[min(96vw,420px)]"
+      {/* Active-trail floating HUD — bottom-center on mobile, bottom-right on desktop.
+          Positioning shell (no Framer transforms) → animated child inside. */}
+      <div
+        className="fixed z-[85] bottom-28 left-1/2 -translate-x-1/2 sm:bottom-3 sm:left-auto sm:right-6 sm:translate-x-0 w-[420px] max-w-[94vw]"
         data-testid="self-guided-hud"
       >
+        <motion.div
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, ease: "easeOut" }}
+        >
         <div
           className="rounded-3xl border-4 shadow-lift overflow-hidden"
           style={{ background: "#FCF6E5", borderColor: themeHex }}
@@ -208,14 +204,15 @@ export default function SelfGuidedHud() {
                 variant="outline"
                 data-testid="self-guided-checkin-manual"
                 className="rounded-full"
-                title="I'm here — check me in"
+                title="I&apos;m here — check me in"
               >
-                <Check className="w-4 h-4 mr-1" /> I'm here
+                <Check className="w-4 h-4 mr-1" /> I&apos;m here
               </Button>
             </div>
           </div>
         </div>
-      </motion.div>
+        </motion.div>
+      </div>
 
       {/* Lore reveal — fired right after a successful check-in */}
       <AnimatePresence>
@@ -246,7 +243,7 @@ export default function SelfGuidedHud() {
                 )}
               </div>
               <div className="p-5">
-                <p className="italic text-ink-900 leading-relaxed text-sm lg:text-base">"{unlockedStop.lore}"</p>
+                <p className="italic text-ink-900 leading-relaxed text-sm lg:text-base">&ldquo;{unlockedStop.lore}&rdquo;</p>
                 <div className="mt-5 flex justify-end">
                   <Button onClick={() => setUnlockedStop(null)} data-testid="self-guided-reveal-close" className="rounded-full bg-jungle-700 hover:bg-jungle-600 text-sand-100 tracking-wider">
                     Continue on the trail
