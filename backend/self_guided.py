@@ -48,6 +48,12 @@ SELF_GUIDED = [
         ),
         "xp_reward": 80,
         "badge_id": "badge-port-louis-walker",
+        "title_earned": "Port Louis Wanderer",
+        "epilogue": (
+            "From a statue to a sunset — you walked the city without rushing her, traveler. "
+            "Port Louis only opens for those who slow down. You did. The harbour cranes will keep working, "
+            "the alouda kiosk will keep serving, the palms will keep arguing — but they remember you now."
+        ),
         "stops": [
             {
                 "stop_id": "pl-old-1", "order": 1,
@@ -93,6 +99,12 @@ SELF_GUIDED = [
         ),
         "xp_reward": 70,
         "badge_id": "badge-coastal-loop",
+        "title_earned": "Northern Lagoon Loop Walker",
+        "epilogue": (
+            "Three coves, one lagoon, and the wind in your ears the whole way. You found the snorkel rocks "
+            "the tourists miss and the chapel that watches over Coin de Mire. The north coast remembers walkers "
+            "more than swimmers — and now it knows your stride."
+        ),
         "stops": [
             {
                 "stop_id": "nc-loop-1", "order": 1,
@@ -131,6 +143,12 @@ SELF_GUIDED = [
         ),
         "xp_reward": 90,
         "badge_id": "badge-maroon-trail",
+        "title_earned": "Maroon Trail Walker",
+        "epilogue": (
+            "You did not climb the mountain, traveler — and that was the point. The maroons climbed her once, "
+            "and the island has never forgotten. By walking her base you honoured them; by listening, you carried "
+            "their story a few steps further. Le Morne is satisfied with you tonight."
+        ),
         "stops": [
             {
                 "stop_id": "lm-trail-1", "order": 1,
@@ -221,6 +239,13 @@ async def _ensure_stop_audio(journey: dict, stop: dict) -> Path:
     target = _stop_audio_path(journey["journey_id"], stop["stop_id"])
     script = f"{stop['name']}. {stop.get('lore', '')}"
     return await _generate_tts(target, script, f"sg-stop {journey['journey_id']}/{stop['stop_id']}")
+
+
+async def _ensure_journey_epilogue_audio(journey: dict) -> Path:
+    """Generate (and cache) Ti Dodo's farewell monologue for the journey."""
+    target = SG_AUDIO_DIR / f"sg__{journey['journey_id']}__epilogue.mp3".replace("/", "_")
+    script = f"{journey.get('title_earned', '')}. {journey.get('epilogue', '')}"
+    return await _generate_tts(target, script, f"sg-epilogue {journey['journey_id']}")
 
 
 async def _ensure_journey_intro_audio(journey: dict) -> Path:
@@ -337,6 +362,19 @@ def build_router(db, get_current_user) -> APIRouter:
             headers={"Cache-Control": "public, max-age=86400"},
         )
 
+    @router.get("/{journey_id}/epilogue-audio")
+    async def journey_epilogue_audio(journey_id: str):
+        """Ti Dodo's farewell monologue — plays at the end of a completed trail."""
+        j = await db.self_guided.find_one({"journey_id": journey_id}, {"_id": 0})
+        if not j:
+            raise HTTPException(404, "Journey not found")
+        path = await _ensure_journey_epilogue_audio(j)
+        return FileResponse(
+            path,
+            media_type="audio/mpeg",
+            headers={"Cache-Control": "public, max-age=86400"},
+        )
+
     @router.post("/{journey_id}/start")
     async def start_journey(journey_id: str, user: dict = Depends(get_current_user)):
         j = await db.self_guided.find_one({"journey_id": journey_id}, {"_id": 0})
@@ -420,6 +458,23 @@ def build_router(db, get_current_user) -> APIRouter:
 
         await db.users.update_one({"user_id": user["user_id"]}, update)
 
+        # Build epilogue payload if this check-in finished the trail (used by the frontend cutscene)
+        epilogue_payload = None
+        if is_finished and not prog.get("completed_at"):
+            epilogue_payload = {
+                "journey_id": j["journey_id"],
+                "title": j["title"],
+                "subtitle": j.get("subtitle"),
+                "theme_color": j.get("theme_color"),
+                "theme_hex": j.get("theme_hex"),
+                "title_earned": j.get("title_earned") or f"{j['title']} Walker",
+                "epilogue": j.get("epilogue") or "",
+                "stops": [{"stop_id": s["stop_id"], "name": s["name"]} for s in j["stops"]],
+                "xp_gain": xp_gain,
+                "badge_unlocked": badge_unlocked,
+                "completed_at": new_prog.get("completed_at"),
+            }
+
         return {
             "ok": True,
             "already": already,
@@ -429,6 +484,7 @@ def build_router(db, get_current_user) -> APIRouter:
             "xp_gain": xp_gain,
             "new_level": new_level,
             "badge_unlocked": badge_unlocked,
+            "epilogue": epilogue_payload,
         }
 
     @router.post("/{journey_id}/stop")

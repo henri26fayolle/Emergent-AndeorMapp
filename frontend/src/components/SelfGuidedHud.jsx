@@ -161,6 +161,13 @@ export default function SelfGuidedHud() {
         if (data.finished) {
           playChime();
           toast.success(`Journey complete! +${data.xp_gain} XP${data.badge_unlocked ? " · 🏅 free badge unlocked" : ""}`);
+          // Fire the climactic Trail Epilogue cutscene with the server's payload
+          if (data.epilogue) {
+            // small delay so the unlock-reveal modal animates in first
+            setTimeout(() => {
+              window.dispatchEvent(new CustomEvent("andeor:trail-completed", { detail: data.epilogue }));
+            }, 600);
+          }
         } else {
           toast.success(`Stop unlocked: ${nextStop.name}`);
         }

@@ -502,7 +502,6 @@ def build_router(db, get_current_user) -> APIRouter:
         u = await db.users.find_one({"user_id": user["user_id"]}, {"_id": 0})
         completed = set(u.get("completed_main_quests", []))
         titles = set(u.get("titles_earned", []))
-        already_codes = {r.get("source_main_quest_id") for r in (u.get("rewards", []) or []) if r.get("source_main_quest_id")}
 
         all_quests = await db.main_quests.find({}, {"_id": 0}).to_list(50)
         newly = []

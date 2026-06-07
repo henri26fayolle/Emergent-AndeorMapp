@@ -5,6 +5,7 @@ import { findAvatar } from "@/lib/avatars";
 import AvatarPickerDialog from "@/components/AvatarPickerDialog";
 import HudPanels from "@/components/HudPanels";
 import EpilogueWatcher from "@/components/EpilogueWatcher";
+import TrailEpilogueWatcher from "@/components/TrailEpilogueWatcher";
 import SelfGuidedHud from "@/components/SelfGuidedHud";
 import { isMuted, toggleMuted, subscribe, playClick } from "@/lib/sound";
 import { useEffect, useState } from "react";
@@ -137,6 +138,9 @@ export default function RpgHud() {
 
       {/* Global watcher — plays the Main Quest Epilogue cutscene on completion */}
       <EpilogueWatcher />
+
+      {/* Global watcher — plays the Self-Guided Trail Epilogue cutscene on completion */}
+      <TrailEpilogueWatcher />
 
       {/* Floating "On the trail" HUD — only shows when a self-guided journey is active */}
       <SelfGuidedHud />
