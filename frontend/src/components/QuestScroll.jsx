@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Clock, Sparkles, Compass } from "lucide-react";
+import { Clock, Compass, ExternalLink } from "lucide-react";
 
 /**
  * Parchment-styled "quest scroll" card for tours.
@@ -66,15 +66,29 @@ export default function QuestScroll({ tour, regionName, onBegin, disabled = fals
               <span className="font-display text-2xl text-jungle-700">€{tour.price}</span>
               <span className="text-xs text-ink-700">/ adventurer</span>
             </div>
-            <button
-              onClick={() => onBegin && onBegin(tour)}
-              disabled={disabled}
-              data-testid={`scroll-begin-${tour.tour_id}`}
-              className="group inline-flex items-center gap-2 rounded-full bg-jungle-700 hover:bg-jungle-600 text-sand-100 px-5 py-2.5 font-display tracking-wide text-sm shadow-clay disabled:opacity-50 transition-all"
-            >
-              <Compass className="w-4 h-4" />
-              Begin quest
-            </button>
+            <div className="flex items-center gap-2">
+              {tour.marketplace_url && (
+                <a
+                  href={tour.marketplace_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title="View on Andeor marketplace"
+                  className="inline-flex items-center gap-1 rounded-full border border-[#7A5A2B]/40 bg-sand-100 hover:bg-[#f5ead0] text-[#7A5A2B] px-3 py-2 text-xs font-bold tracking-wide transition-colors"
+                >
+                  <ExternalLink className="w-3 h-3" />
+                  Book
+                </a>
+              )}
+              <button
+                onClick={() => onBegin && onBegin(tour)}
+                disabled={disabled}
+                data-testid={`scroll-begin-${tour.tour_id}`}
+                className="group inline-flex items-center gap-2 rounded-full bg-jungle-700 hover:bg-jungle-600 text-sand-100 px-5 py-2.5 font-display tracking-wide text-sm shadow-clay disabled:opacity-50 transition-all"
+              >
+                <Compass className="w-4 h-4" />
+                Begin quest
+              </button>
+            </div>
           </div>
         </div>
 

@@ -21,19 +21,29 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field, EmailStr, ConfigDict
 import httpx
 
-from emergentintegrations.llm.chat import LlmChat, UserMessage
+try:
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+except Exception:
+    LlmChat = None
+    UserMessage = None
 
 from codex import build_router as build_codex_router, seed_lore
+from db_postgres import create_postgres_database
 from main_quests import build_router as build_main_quests_router, seed_main_quests
 from self_guided import build_router as build_self_guided_router, seed_self_guided
 from meteo import build_router as build_meteo_router
 from info_center import build_router as build_info_center_router
 from admin_extra import build_router as build_admin_extra_router
 
-# ---------- MongoDB ----------
-mongo_url = os.environ["MONGO_URL"]
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ["DB_NAME"]]
+# ---------- Database ----------
+supabase_db_url = os.environ.get("SUPABASE_DB_URL", "").strip()
+if supabase_db_url:
+    client = None
+    db = create_postgres_database(supabase_db_url)
+else:
+    mongo_url = os.environ["MONGO_URL"]
+    client = AsyncIOMotorClient(mongo_url)
+    db = client[os.environ["DB_NAME"]]
 
 # ---------- App ----------
 app = FastAPI(title="An Deor Quest API")
@@ -170,6 +180,14 @@ class SessionIn(BaseModel):
     session_id: str
 
 
+class AndeorSessionIn(BaseModel):
+    user_id: str = Field(min_length=1)
+    email: EmailStr
+    name: Optional[str] = None
+    picture: Optional[str] = None
+    roles: List[str] = Field(default_factory=list)
+
+
 class BookingIn(BaseModel):
     tour_id: str
     date: Optional[str] = None
@@ -205,16 +223,19 @@ async def seed_data():
     # Regions
     if await db.regions.count_documents({}) == 0:
         await db.regions.insert_many([dict(r) for r in REGIONS])
-    # Tours
-    if await db.tours.count_documents({}) == 0:
-        await db.tours.insert_many([dict(t) for t in TOURS])
-    else:
-        # Idempotent migration: add guide_pin to existing tours
-        for t in TOURS:
-            await db.tours.update_one(
-                {"tour_id": t["tour_id"]},
-                {"$set": {"guide_pin": t["guide_pin"]}},
-            )
+    # Tours — upsert all seed tours so new entries and field additions are always applied
+    for t in TOURS:
+        await db.tours.update_one(
+            {"tour_id": t["tour_id"]},
+            {"$set": dict(t)},
+            upsert=True,
+        )
+    # Remove original placeholder tours that have been superseded by real marketplace tours
+    current_ids = {t["tour_id"] for t in TOURS}
+    legacy_ids = {"t-hike-le-pouce", "t-creole-table", "t-kite-le-morne"}
+    to_purge = list(legacy_ids - current_ids)
+    if to_purge:
+        await db.tours.delete_many({"tour_id": {"$in": to_purge}})
     # Quests
     if await db.quests.count_documents({}) == 0:
         await db.quests.insert_many([dict(q) for q in QUESTS])
@@ -253,6 +274,8 @@ async def seed_admin():
 
 @app.on_event("startup")
 async def startup():
+    if hasattr(db, "connect"):
+        await db.connect()
     await db.users.create_index("email", unique=True)
     await db.user_sessions.create_index("session_token", unique=True)
     await db.bookings.create_index("user_id")
@@ -269,7 +292,10 @@ async def startup():
 
 @app.on_event("shutdown")
 async def shutdown():
-    client.close()
+    if hasattr(db, "close"):
+        await db.close()
+    elif client:
+        client.close()
 
 
 # ---------- Auth endpoints ----------
@@ -385,8 +411,74 @@ async def google_session(payload: SessionIn, response: Response):
         max_age=7 * 24 * 3600,
         path="/",
     )
+    access_token = create_access_token(user_id, email)
+    set_auth_cookie(response, access_token)
     user_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0, "password_hash": 0})
-    return {"user": public_user(user_doc)}
+    return {"user": public_user(user_doc), "token": access_token}
+
+
+@api.post("/auth/andeor/session")
+async def andeor_session(payload: AndeorSessionIn, request: Request, response: Response):
+    bridge_secret = os.environ.get("ANDEOR_GAME_BRIDGE_SECRET", "")
+    if not bridge_secret:
+        raise HTTPException(503, "Andeor account bridge is not configured")
+
+    auth = request.headers.get("Authorization", "")
+    token = auth[7:] if auth.startswith("Bearer ") else ""
+    if not token or not secrets.compare_digest(token, bridge_secret):
+        raise HTTPException(401, "Unauthorized account bridge request")
+
+    email = payload.email.lower()
+    role = "admin" if any(r in {"admin", "superadmin"} for r in payload.roles) else "player"
+    now = datetime.now(timezone.utc).isoformat()
+    existing = await db.users.find_one({"andeor_user_id": payload.user_id})
+    if not existing:
+        existing = await db.users.find_one({"email": email})
+
+    if existing:
+        user_id = existing["user_id"]
+        update = {
+            "andeor_user_id": payload.user_id,
+            "email": email,
+            "name": payload.name or existing.get("name") or email.split("@")[0],
+            "picture": payload.picture or existing.get("picture"),
+            "auth_provider": "andeor",
+            "updated_at": now,
+        }
+        if not existing.get("avatar"):
+            update["avatar"] = "akil"
+        if not existing.get("tutorial_completed"):
+            update["tutorial_completed"] = True
+        if existing.get("role") != "admin":
+            update["role"] = role
+        await db.users.update_one({"user_id": user_id}, {"$set": update})
+    else:
+        user_id = f"user_{uuid.uuid4().hex[:12]}"
+        await db.users.insert_one({
+            "user_id": user_id,
+            "andeor_user_id": payload.user_id,
+            "email": email,
+            "name": payload.name or email.split("@")[0],
+            "password_hash": None,
+            "role": role,
+            "auth_provider": "andeor",
+            "xp": 0,
+            "level": 1,
+            "regions_unlocked": ["north-coast", "black-river", "south-wild", "east-lagoons", "central-culture"],
+            "cards": [],
+            "badges": [],
+            "picture": payload.picture,
+            "avatar": "akil",
+            "tutorial_completed": True,
+            "language": "en",
+            "created_at": now,
+            "updated_at": now,
+        })
+
+    access_token = create_access_token(user_id, email)
+    set_auth_cookie(response, access_token)
+    user_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0, "password_hash": 0})
+    return {"user": public_user(user_doc), "token": access_token}
 
 
 # ---------- Catalog ----------
@@ -572,6 +664,99 @@ async def my_profile(user: dict = Depends(get_current_user)):
     return {**public_user(doc), "regions_unlocked": doc.get("regions_unlocked", []), "cards": doc.get("cards", []), "badges": doc.get("badges", []), "bookings_count": bookings_count, "active_self_guided": doc.get("active_self_guided"), "self_guided_progress": doc.get("self_guided_progress", {})}
 
 
+@api.get("/me/greeting")
+async def me_greeting(user: dict = Depends(get_current_user)):
+    """Returns a dynamic Ti Dodo greeting line personalised to this player's current context."""
+    if not EMERGENT_LLM_KEY or LlmChat is None or UserMessage is None:
+        # Graceful fallback — no AI configured
+        name = user.get("name", "explorer")
+        xp = user.get("xp", 0)
+        regions_count = len(user.get("regions_unlocked", []))
+        fallback = (
+            f"Bonzour, {name}. {regions_count} region{'s' if regions_count != 1 else ''} unlocked, {xp} XP earned."
+        )
+        return {"greeting": fallback}
+
+    # Build player context
+    name = user.get("name", "explorer")
+    xp = user.get("xp", 0)
+    level = user.get("level", 1)
+    regions_unlocked = user.get("regions_unlocked", [])
+    regions_count = len(regions_unlocked)
+    badges = user.get("badges", [])
+    badges_count = len(badges)
+
+    # Last booking context
+    last_booking = await db.bookings.find_one(
+        {"user_id": user["user_id"]},
+        {"_id": 0, "tour_name": 1, "status": 1, "date": 1},
+        sort=[("created_at", -1)],
+    )
+    pending_count = await db.bookings.count_documents({"user_id": user["user_id"], "status": "confirmed"})
+
+    # Time of day in Mauritius (UTC+4)
+    hour_utc = datetime.now(timezone.utc).hour
+    hour_mru = (hour_utc + 4) % 24
+    if hour_mru < 6:
+        time_ctx = "it's the middle of the night in Mauritius"
+    elif hour_mru < 12:
+        time_ctx = "it's morning in Mauritius"
+    elif hour_mru < 17:
+        time_ctx = "it's afternoon in Mauritius"
+    elif hour_mru < 20:
+        time_ctx = "it's evening in Mauritius"
+    else:
+        time_ctx = "it's night in Mauritius"
+
+    lang = user.get("language", "en")
+    lang_directive = {
+        "en":  "Reply in English. You may include one Creole word with translation in parentheses.",
+        "fr":  "Réponds en français, tu peux inclure un seul mot créole avec traduction entre parenthèses.",
+        "mfe": "Reponn an kreol morisien natirel. Enn sél fraz, kourt.",
+    }.get(lang, "Reply in English.")
+
+    ctx_parts = [
+        f"Player name: {name}",
+        f"Level {level}, {xp} XP",
+        f"{regions_count} region(s) unlocked",
+        f"{badges_count} badge(s) earned",
+        time_ctx,
+    ]
+    if last_booking:
+        status_label = "completed" if last_booking["status"] == "completed" else "upcoming"
+        ctx_parts.append(f"Last tour: '{last_booking['tour_name']}' ({status_label})")
+    if pending_count > 0:
+        ctx_parts.append(f"{pending_count} pending booking(s)")
+
+    context_str = ". ".join(ctx_parts)
+
+    system = (
+        "You are Ti Dodo, the warm and wise AI companion of Andeor — a Mauritius outdoor travel platform. "
+        "Your job is to greet a returning player with ONE short sentence (max 20 words). "
+        "The greeting should feel personal and alive — reference their actual progress, time of day, or last adventure. "
+        "Never repeat the same generic formula. Be warm, poetic when fitting, rooted in Mauritius. "
+        f"{lang_directive} "
+        "Reply with ONLY the greeting sentence, no quotes, no prefix."
+    )
+
+    prompt = f"Generate a greeting for this player. Context: {context_str}"
+
+    try:
+        chat_client = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            session_id=f"greeting_{user['user_id']}_{hour_utc}",
+            system_message=system,
+        ).with_model("anthropic", "claude-haiku-4-5-20251001")
+        greeting = await chat_client.send_message(UserMessage(text=prompt))
+        # Strip surrounding quotes if the model added them
+        greeting = greeting.strip().strip('"').strip("'")
+    except Exception:
+        logger.exception("Greeting LLM error")
+        greeting = f"Bonzour, {name}. {xp} XP and {regions_count} regions — the island remembers you."
+
+    return {"greeting": greeting}
+
+
 @api.get("/me/rewards")
 async def my_rewards(user: dict = Depends(get_current_user)):
     rows = await db.user_rewards.find({"user_id": user["user_id"]}, {"_id": 0}).sort("created_at", -1).to_list(200)
@@ -596,7 +781,7 @@ async def leaderboard():
 # ---------- AI Companion ----------
 @api.post("/chat")
 async def chat(payload: ChatIn, user: dict = Depends(get_current_user)):
-    if not EMERGENT_LLM_KEY:
+    if not EMERGENT_LLM_KEY or LlmChat is None or UserMessage is None:
         raise HTTPException(500, "AI is not configured")
     session_id = payload.session_id or f"chat_{user['user_id']}"
     lang_directive = {
@@ -613,8 +798,10 @@ async def chat(payload: ChatIn, user: dict = Depends(get_current_user)):
         "hiking tips, sea conditions, etiquette. "
         f"The player's name is {user.get('name', 'Explorer')}, currently level "
         f"{user.get('level', 1)} with {user.get('xp', 0)} XP. Suggest An Deor tours when "
-        "relevant: 'Blue Bay Snorkel Safari', 'Le Pouce Sunrise Hike', 'Creole Table Cooking Class', "
-        "'Le Morne Kite Session', 'Sega Night by the Sea'. Keep answers under 160 words."
+        "relevant — name real Andeor tours like: 'Hiking at Black River Gorges', 'Kayak with Dolphins', "
+        "'Canyoning Tamarind Falls', 'Le Morne Brabant Hike', 'Wild South E-bike Adventure', "
+        "'Pieter Both Exclusive Guided Climb', 'Sunrise Hike at Le Morne Brabant'. "
+        "Always link to andeor.travel for booking. Keep answers under 160 words."
     )
 
     history = await db.chat_messages.find({"session_id": session_id}, {"_id": 0}).sort("ts", 1).to_list(50)

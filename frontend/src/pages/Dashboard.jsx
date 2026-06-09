@@ -23,6 +23,7 @@ export default function Dashboard() {
   const [tours, setTours] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [mainQuests, setMainQuests] = useState([]);
+  const [greeting, setGreeting] = useState(null);
   const [activeRegion, setActiveRegion] = useState(null);
   const [showPortLouis, setShowPortLouis] = useState(false);
   const [showNorthCoast, setShowNorthCoast] = useState(false);
@@ -51,6 +52,14 @@ export default function Dashboard() {
       setMainQuests(mq.data);
     });
   };
+
+  // Fetch Ti Dodo's dynamic greeting once on mount (non-blocking)
+  useEffect(() => {
+    api.get("/me/greeting")
+      .then((res) => { if (res.data?.greeting) setGreeting(res.data.greeting); })
+      .catch(() => {});
+  }, []);
+
   useEffect(() => { load(); }, []);
 
   // The welcome ribbon auto-fades via pure CSS animation (no React state from
@@ -119,9 +128,9 @@ export default function Dashboard() {
             Ti Dodo
           </div>
           <p className="font-display text-lg lg:text-xl italic text-ink-900 leading-snug">
-            &ldquo;Bonzour, {profile.name || "explorer"}. {unlocked.size === 1
-              ? "The North awaits — tap its pin to begin."
-              : `${unlocked.size} regions yours, ${regions.length - unlocked.size} still sealed.`}&rdquo;
+            &ldquo;{greeting || (unlocked.size === 1
+              ? `Bonzour, ${profile.name || "explorer"}. The North awaits — tap its pin to begin.`
+              : `Bonzour, ${profile.name || "explorer"}. ${unlocked.size} regions yours, ${regions.length - unlocked.size} still sealed.`)}&rdquo;
           </p>
           {pendingBookings.length > 0 && (
             <div className="mt-3 text-xs tracking-[0.2em] uppercase text-sunset-600 flex items-center gap-2">
