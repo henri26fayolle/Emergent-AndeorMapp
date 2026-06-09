@@ -86,8 +86,14 @@ const STRINGS = {
 
   // ===== Register step =====
   "step3.label":     { en: "Step 3 of 3",  fr: "Étape 3 sur 3", mfe: "Letap 3 lor 3" },
-  "register.heading":{ en: "Save your quest", fr: "Sauvegarde ta quête", mfe: "Sov ou kest" },
-  "register.subhead":{ en: "So you don't lose your progress, {name}.", fr: "Pour ne pas perdre ta progression, {name}.", mfe: "Pou pa perdi progresyon, {name}." },
+  "register.heading":{ en: "Connect your Andeor account", fr: "Connecte ton compte Andeor", mfe: "Konekte ou kont Andeor" },
+  "register.subhead":{ en: "Save your quest and use the same account for bookings, {name}.", fr: "Sauvegarde ta quête et utilise le même compte pour tes réservations, {name}.", mfe: "Sov ou kest ek servi mem kont-la pou rezervasion, {name}." },
+  "register.google": { en: "Continue with Google", fr: "Continuer avec Google", mfe: "Kontinye avek Google" },
+  "register.google.subhead": { en: "Use the Google account connected to Andeor.", fr: "Utilise le compte Google connecté à Andeor.", mfe: "Servi kont Google ki konekte ar Andeor." },
+  "register.signup": { en: "Sign up", fr: "Créer un compte", mfe: "Kre enn kont" },
+  "register.signup.subhead": { en: "Create a new Andeor account.", fr: "Crée un nouveau compte Andeor.", mfe: "Kre enn nouvo kont Andeor." },
+  "register.login": { en: "Log in", fr: "Se connecter", mfe: "Konekte" },
+  "register.login.subhead": { en: "Already have an Andeor account.", fr: "Tu as déjà un compte Andeor.", mfe: "Ou deza enan enn kont Andeor." },
   "register.email":  { en: "Email",    fr: "Email",      mfe: "Email" },
   "register.password":{ en: "Password", fr: "Mot de passe", mfe: "Mo-pas" },
   "register.submit": { en: "Begin the quest", fr: "Commencer la quête", mfe: "Komans kest-la" },

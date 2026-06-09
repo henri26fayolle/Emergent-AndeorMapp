@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { api } from "@/lib/api";
+import { api, setGameAccessToken } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function AuthCallback() {
@@ -23,6 +23,7 @@ export default function AuthCallback() {
     (async () => {
       try {
         const { data } = await api.post("/auth/google/session", { session_id });
+        setGameAccessToken(data.token);
         setUser(data.user);
         window.history.replaceState({}, "", "/dashboard");
         navigate("/dashboard", { replace: true, state: { user: data.user } });

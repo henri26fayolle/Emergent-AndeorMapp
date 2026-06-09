@@ -1,10 +1,12 @@
+import { assetPath } from "@/lib/assets";
+
 // Guide NPC portraits — uses the self-hosted JPGs in /public/avatars/.
 const NPC_IMG = {
-  naima:  "/avatars/naima.jpg",
-  akil:   "/avatars/akil.jpg",
-  lea:    "/avatars/lea.jpg",
-  sanjay: "/avatars/sanjay.jpg",
-  marie:  "/avatars/marie.jpg",
+  naima:  assetPath("/avatars/naima.jpg"),
+  akil:   assetPath("/avatars/akil.jpg"),
+  lea:    assetPath("/avatars/lea.jpg"),
+  sanjay: assetPath("/avatars/sanjay.jpg"),
+  marie:  assetPath("/avatars/marie.jpg"),
 };
 
 const NPC_BG = {

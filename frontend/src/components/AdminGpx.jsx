@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { api, formatErr } from "@/lib/api";
+import { api, API_BASE, formatErr } from "@/lib/api";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Upload, Trash2, Map, Download, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+const API = API_BASE;
 
 export default function AdminGpx() {
   const [tours, setTours] = useState([]);
@@ -112,7 +112,7 @@ export default function AdminGpx() {
                       </div>
                     </div>
                     <a
-                      href={`${process.env.REACT_APP_BACKEND_URL}/api/codex/gpx/${t.tour_id}/${encodeURIComponent(g.filename)}`}
+                      href={`${API}/codex/gpx/${t.tour_id}/${encodeURIComponent(g.filename)}`}
                       download={g.filename}
                       className="inline-flex items-center gap-1 rounded-full bg-jungle-700 hover:bg-jungle-600 text-sand-100 text-xs font-bold tracking-wider px-3 py-1.5"
                     >

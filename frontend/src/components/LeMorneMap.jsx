@@ -1,7 +1,8 @@
 import RegionSubMap from "@/components/RegionSubMap";
+import { assetPath } from "@/lib/assets";
 import { Mountain, Sailboat, Wind, Waves, Sparkles } from "lucide-react";
 
-const LE_MORNE_MAP = "/le_morne_map.png";
+const LE_MORNE_MAP = assetPath("/le_morne_map.png");
 
 const TOUR_ICON = {
   "t-kite-le-morne":     Wind,

@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, HashRouter, Routes, Route, useLocation } from "react-router-dom";
 import "@/App.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
@@ -42,15 +42,17 @@ function AppRouter() {
 }
 
 function App() {
+  const Router = process.env.REACT_APP_ROUTER_MODE === "hash" ? HashRouter : BrowserRouter;
+
   return (
-    <BrowserRouter>
+    <Router>
       <AuthProvider>
         <LanguageProvider>
           <AppRouter />
           <Toaster position="top-center" richColors />
         </LanguageProvider>
       </AuthProvider>
-    </BrowserRouter>
+    </Router>
   );
 }
 

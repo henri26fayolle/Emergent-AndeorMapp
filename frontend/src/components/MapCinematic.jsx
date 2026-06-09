@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { assetPath } from "@/lib/assets";
+
+const CINEMATIC_VIDEO = assetPath("/prologue_to_map.mp4");
 
 /**
  * Full-screen cinematic that bridges the Prologue's final beat into the
@@ -71,7 +74,7 @@ export default function MapCinematic({ onDone }) {
         >
           <video
             ref={videoRef}
-            src="/prologue_to_map.mp4"
+            src={CINEMATIC_VIDEO}
             autoPlay
             playsInline
             onEnded={finish}
@@ -110,7 +113,7 @@ export default function MapCinematic({ onDone }) {
           className="fixed inset-0 z-[80] bg-black pointer-events-none"
         >
           <video
-            src="/prologue_to_map.mp4"
+            src={CINEMATIC_VIDEO}
             autoPlay={false}
             muted
             playsInline

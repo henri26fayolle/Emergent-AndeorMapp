@@ -1,9 +1,11 @@
 import { motion } from "framer-motion";
 import { Waves, Mountain, Wind, Anchor, Landmark, Lock, MapPin, Info } from "lucide-react";
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
+import { assetPath } from "@/lib/assets";
 import { playSelect } from "@/lib/sound";
 
-const MAP_VIDEO = "/mauritius_map_loop.mp4";
+const MAP_VIDEO = assetPath("/mauritius_map_loop.mp4");
+const MAP_VIDEO_WEBM = assetPath("/mauritius_map_loop.webm");
 
 // Coordinates calibrated to the new 16:9 isometric video frame (1920x1080).
 // x/y are percentages of the video frame itself (NOT the viewport).
@@ -59,7 +61,7 @@ export default function MapMauritius({ regions = [], unlocked = new Set(), onReg
           className="absolute inset-0 w-full h-full object-fill pointer-events-none select-none"
           draggable={false}
         >
-          <source src="/mauritius_map_loop.webm" type="video/webm" />
+          <source src={MAP_VIDEO_WEBM} type="video/webm" />
           <source src={MAP_VIDEO} type="video/mp4" />
         </motion.video>
 

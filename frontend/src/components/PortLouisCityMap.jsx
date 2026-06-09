@@ -1,9 +1,10 @@
 import RegionSubMap from "@/components/RegionSubMap";
+import { assetPath } from "@/lib/assets";
 import {
   BookOpen, Utensils, Landmark, Church, Castle, Trophy, ChefHat,
 } from "lucide-react";
 
-const PORT_LOUIS_MAP = "/port_louis_map.png";
+const PORT_LOUIS_MAP = assetPath("/port_louis_map.png");
 
 const TOUR_ICON = {
   "t-pl-aapravasi-ghat": Landmark,

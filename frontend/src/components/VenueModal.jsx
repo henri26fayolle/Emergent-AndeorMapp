@@ -1,14 +1,21 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
-import { api, formatErr } from "@/lib/api";
+import { api, API_BASE, formatErr } from "@/lib/api";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Play, Pause, BookOpen, X, ChevronRight, Sparkles, Loader2, Clock, Coins, Award } from "lucide-react";
 import { playSelect, playClick } from "@/lib/sound";
 import { toast } from "sonner";
 
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+const API = API_BASE;
+
+function apiAssetUrl(url) {
+  if (!url) return "";
+  if (/^https?:\/\//i.test(url)) return url;
+  if (url.startsWith("/api/")) return `${API_BASE}${url.slice(4)}`;
+  return `${API_BASE}${url.startsWith("/") ? "" : "/"}${url}`;
+}
 
 function fmtTime(s) {
   if (!isFinite(s) || s < 0) return "0:00";
@@ -60,7 +67,7 @@ export default function VenueModal({ open, tourId, focusedQuest, isFocused, onCl
     if (!el) return;
     if (playing) { el.pause(); return; }
     if (!el.src) {
-      el.src = `${process.env.REACT_APP_BACKEND_URL}${data.audio_url}`;
+      el.src = apiAssetUrl(data.audio_url);
       setAudioLoading(true);
     }
     try { await el.play(); } catch { setAudioLoading(false); }

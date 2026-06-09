@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
-import { api } from "@/lib/api";
+import { api, linkMainSiteAccount, setGameAccessToken } from "@/lib/api";
 
 const AuthCtx = createContext(null);
 
@@ -9,10 +9,19 @@ export function AuthProvider({ children }) {
 
   const refresh = useCallback(async () => {
     try {
+      const linkedUser = await linkMainSiteAccount();
+      if (linkedUser) {
+        setUser(linkedUser);
+        setLoading(false);
+        return linkedUser;
+      }
+
       const { data } = await api.get("/auth/me");
       setUser(data);
+      return data;
     } catch {
       setUser(null);
+      return null;
     } finally {
       setLoading(false);
     }
@@ -29,18 +38,21 @@ export function AuthProvider({ children }) {
 
   const login = async (email, password) => {
     const { data } = await api.post("/auth/login", { email, password });
+    setGameAccessToken(data.token);
     setUser(data.user);
     return data.user;
   };
 
   const register = async (email, password, name) => {
     const { data } = await api.post("/auth/register", { email, password, name });
+    setGameAccessToken(data.token);
     setUser(data.user);
     return data.user;
   };
 
   const logout = async () => {
     try { await api.post("/auth/logout"); } catch (_) {}
+    setGameAccessToken(null);
     setUser(null);
   };
 

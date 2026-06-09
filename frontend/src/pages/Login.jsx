@@ -1,39 +1,43 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { formatErr } from "@/lib/api";
-import { toast } from "sonner";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { LogIn, Sparkles } from "lucide-react";
+import { startAndeorAuthPopup } from "@/lib/andeorAuthPopup";
+import { useAuth } from "@/contexts/AuthContext";
+
+function GoogleMark() {
+  return (
+    <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden="true">
+      <path fill="#4285F4" d="M22.6 12.2c0-.8-.1-1.6-.2-2.3H12v4.4h5.9c-.3 1.4-1.1 2.5-2.2 3.3v2.7h3.6c2.1-1.9 3.3-4.7 3.3-8.1Z" />
+      <path fill="#34A853" d="M12 23c3 0 5.5-1 7.3-2.7l-3.6-2.7c-1 .7-2.2 1-3.7 1-2.8 0-5.2-1.9-6.1-4.5H2.2v2.8C4 20.5 7.7 23 12 23Z" />
+      <path fill="#FBBC05" d="M5.9 14.1c-.2-.7-.4-1.4-.4-2.1s.1-1.4.4-2.1V7.1H2.2A11 11 0 0 0 1 12c0 1.8.4 3.5 1.2 4.9l3.7-2.8Z" />
+      <path fill="#EA4335" d="M12 5.4c1.6 0 3.1.6 4.2 1.7l3.2-3.2A10.8 10.8 0 0 0 12 1C7.7 1 4 3.5 2.2 7.1l3.7 2.8c.9-2.6 3.3-4.5 6.1-4.5Z" />
+    </svg>
+  );
+}
 
 export default function Login() {
-  const { login } = useAuth();
   const navigate = useNavigate();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState(null);
+  const { refresh } = useAuth();
+  const [connecting, setConnecting] = useState(false);
 
-  const onSubmit = async (e) => {
-    e.preventDefault();
-    setBusy(true);
-    setError(null);
-    try {
-      await login(email, password);
-      toast.success("Welcome back, explorer.");
-      navigate("/dashboard");
-    } catch (e) {
-      setError(formatErr(e.response?.data?.detail) || e.message);
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const googleSignIn = () => {
-    // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
-    const redirectUrl = window.location.origin + "/dashboard";
-    window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
+  const continueWithAndeor = (mode, provider = "google") => {
+    setConnecting(true);
+    startAndeorAuthPopup({
+      mode,
+      provider,
+      onSuccess: async () => {
+        try {
+          const nextUser = await refresh();
+          navigate(nextUser?.tutorial_completed ? "/dashboard" : "/onboarding", { replace: true });
+        } finally {
+          setConnecting(false);
+        }
+      },
+      onError: () => setConnecting(false),
+      onCancel: () => setConnecting(false),
+    });
   };
 
   return (
@@ -49,41 +53,38 @@ export default function Login() {
       </div>
 
       <div className="flex items-center justify-center px-6 py-16">
-        <form onSubmit={onSubmit} className="w-full max-w-md card-clay p-10" data-testid="login-form">
+        <div className="w-full max-w-md card-clay p-10" data-testid="login-form">
           <h1 className="font-display text-3xl mb-2">Sign in</h1>
-          <p className="text-ink-700 mb-8">Continue your Mauritius quest.</p>
+          <p className="text-ink-700 mb-8">Use your Andeor account to continue your Mauritius quest.</p>
 
-          <Button type="button" onClick={googleSignIn} variant="outline" data-testid="login-google-btn" className="w-full rounded-full mb-6 border-ink-900/20">
-            <svg className="w-4 h-4 mr-2" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.6-6 8-11.3 8a12 12 0 1 1 0-24 12 12 0 0 1 8.5 3.5l5.7-5.7A20 20 0 1 0 24 44a20 20 0 0 0 19.6-23.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8A12 12 0 0 1 24 12c3.1 0 6 1.2 8.1 3.1l5.7-5.7A20 20 0 0 0 6.3 14.7z"/><path fill="#4CAF50" d="M24 44a20 20 0 0 0 13.5-5.2l-6.2-5.3A12 12 0 0 1 12.7 28.4l-6.6 5.1A20 20 0 0 0 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3a12 12 0 0 1-4 5.5l6.2 5.3C41.4 35.2 44 30 44 24c0-1.2-.1-2.3-.4-3.5z"/></svg>
-            Continue with Google
-          </Button>
+          <div className="space-y-3">
+            <Button type="button" disabled={connecting} onClick={() => continueWithAndeor("login", "google")} data-testid="login-google-btn" className="w-full rounded-2xl bg-white text-ink-900 border border-ink-900/10 hover:bg-sand-50 justify-start h-auto py-4 disabled:opacity-70">
+              <span className="mr-3 grid h-10 w-10 place-items-center rounded-full bg-white shadow-sm border border-ink-900/10">
+                <GoogleMark />
+              </span>
+              <span className="text-left">
+                <span className="block font-display text-lg">{connecting ? "Connecting Google..." : "Continue with Google"}</span>
+                <span className="block text-xs font-normal text-ink-700">Connect without leaving the adventure map.</span>
+              </span>
+            </Button>
 
-          <div className="flex items-center gap-3 mb-6">
-            <div className="flex-1 h-px bg-sand-300" />
-            <span className="text-xs tracking-[0.2em] uppercase text-ink-700">or</span>
-            <div className="flex-1 h-px bg-sand-300" />
-          </div>
+            <Button type="button" disabled={connecting} onClick={() => continueWithAndeor("signup", "google")} data-testid="login-signup-btn" className="w-full rounded-2xl bg-jungle-500 hover:bg-jungle-600 text-white justify-start h-auto py-4 disabled:opacity-70">
+              <Sparkles className="mr-3 h-5 w-5" />
+              <span className="text-left">
+                <span className="block font-display text-lg">Sign up with Google</span>
+                <span className="block text-xs font-normal text-sand-100/80">Create a new Andeor account.</span>
+              </span>
+            </Button>
 
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} data-testid="login-email-input" className="rounded-xl" />
-            </div>
-            <div>
-              <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} data-testid="login-password-input" className="rounded-xl" />
-            </div>
-            {error && <div className="text-sunset-600 text-sm" data-testid="login-error">{error}</div>}
-            <Button type="submit" disabled={busy} data-testid="login-submit-btn" className="w-full rounded-full bg-jungle-500 hover:bg-jungle-600 text-white">
-              {busy ? "Signing in…" : "Sign in"}
+            <Button type="button" disabled={connecting} onClick={() => continueWithAndeor("login", "google")} data-testid="login-andeor-btn" variant="outline" className="w-full rounded-2xl justify-start h-auto py-4 disabled:opacity-70">
+              <LogIn className="mr-3 h-5 w-5" />
+              <span className="text-left">
+                <span className="block font-display text-lg">Log in with Google</span>
+                <span className="block text-xs font-normal text-ink-700">Already have an Andeor account.</span>
+              </span>
             </Button>
           </div>
-
-          <div className="mt-6 text-sm text-ink-700">
-            New explorer?{" "}
-            <Link to="/" className="font-semibold text-sunset-500 hover:underline" data-testid="login-go-register">Start your prologue</Link>
-          </div>
-        </form>
+        </div>
       </div>
     </div>
   );

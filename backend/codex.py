@@ -6,11 +6,15 @@ import re
 import logging
 from pathlib import Path
 from datetime import datetime, timezone
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from fastapi.responses import FileResponse
 
-from emergentintegrations.llm.openai import OpenAITextToSpeech
+try:
+    from emergentintegrations.llm.openai import OpenAITextToSpeech
+except Exception:
+    OpenAITextToSpeech = None
 
 logger = logging.getLogger("andeor.codex")
 
@@ -273,7 +277,7 @@ async def _ensure_audio(region: dict) -> str:
     if target.exists() and target.stat().st_size > 0:
         return rel_url
 
-    if not EMERGENT_LLM_KEY:
+    if not EMERGENT_LLM_KEY or OpenAITextToSpeech is None:
         raise HTTPException(503, "TTS not configured")
 
     title = region.get("lore_title", region.get("name", "Mauritius"))
@@ -310,7 +314,7 @@ async def _ensure_tour_audio(tour: dict) -> str:
     if target.exists() and target.stat().st_size > 0:
         return rel_url
 
-    if not EMERGENT_LLM_KEY:
+    if not EMERGENT_LLM_KEY or OpenAITextToSpeech is None:
         raise HTTPException(503, "TTS not configured")
 
     title = tour.get("lore_title", tour.get("name", "An Deor tour"))
@@ -344,7 +348,7 @@ async def _ensure_saga_voice(key: str) -> Path:
     if target.exists() and target.stat().st_size > 0:
         return target
 
-    if not EMERGENT_LLM_KEY:
+    if not EMERGENT_LLM_KEY or OpenAITextToSpeech is None:
         raise HTTPException(503, "TTS not configured")
 
     try:
@@ -460,7 +464,7 @@ def build_router(db, require_admin, get_current_user) -> APIRouter:
         )
 
     @router.get("/saga-voice")
-    async def stream_saga_voice(saga_id: str | None = None):
+    async def stream_saga_voice(saga_id: Optional[str] = None):
         """Public: stream a 3s Ti Dodo voice-line played during the SagaConfetti
         burst when the player claims a Main Quest. Cached on disk, generated on
         first call. `saga_id` (optional) picks the saga-specific phrase; omitting

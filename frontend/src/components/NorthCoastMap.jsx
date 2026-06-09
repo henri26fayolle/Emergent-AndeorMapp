@@ -1,7 +1,8 @@
 import RegionSubMap from "@/components/RegionSubMap";
+import { assetPath } from "@/lib/assets";
 import { Music, Waves, Church, Sailboat, Sun } from "lucide-react";
 
-const NORTH_COAST_MAP = "/north_coast_map.png";
+const NORTH_COAST_MAP = assetPath("/north_coast_map.png");
 
 const TOUR_ICON = {
   "t-sega-night":           Music,

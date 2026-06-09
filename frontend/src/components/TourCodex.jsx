@@ -2,8 +2,16 @@ import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import axios from "axios";
 import { Headphones, BookOpen, Play, Pause, Loader2 } from "lucide-react";
+import { API_BASE } from "@/lib/api";
 
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+const API = API_BASE;
+
+function apiAssetUrl(url) {
+  if (!url) return "";
+  if (/^https?:\/\//i.test(url)) return url;
+  if (url.startsWith("/api/")) return `${API_BASE}${url.slice(4)}`;
+  return `${API_BASE}${url.startsWith("/") ? "" : "/"}${url}`;
+}
 
 const TABS = [
   { id: "listen", label: "Listen", icon: Headphones },
@@ -48,7 +56,7 @@ export default function TourCodex({ tourId, initialTab = "listen" }) {
     const el = audioRef.current; if (!el) return;
     if (playing) { el.pause(); return; }
     if (!el.src) {
-      el.src = `${process.env.REACT_APP_BACKEND_URL}${data.audio_url}`;
+      el.src = apiAssetUrl(data.audio_url);
       setAudioLoading(true);
     }
     try { await el.play(); } catch { setAudioLoading(false); }

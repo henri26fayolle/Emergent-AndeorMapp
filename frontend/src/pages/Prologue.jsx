@@ -1,16 +1,17 @@
 import { useEffect, useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { api, formatErr } from "@/lib/api";
+import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import LanguagePicker from "@/components/LanguagePicker";
+import { startAndeorAuthPopup } from "@/lib/andeorAuthPopup";
 import { AVATARS } from "@/lib/avatars";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { ChevronRight, Map, Sparkles, Trophy, Compass, Footprints } from "lucide-react";
+import { ChevronRight, LogIn, Map, Sparkles, Trophy, Compass, Footprints } from "lucide-react";
 
 const BG = [
   "https://images.pexels.com/photos/7415730/pexels-photo-7415730.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=900&w=1600",
@@ -58,23 +59,71 @@ const AVATAR_STEP    = NAME_STEP + 1;
 const REGISTER_STEP  = AVATAR_STEP + 1;
 const TUTORIAL_START = REGISTER_STEP + 1;
 const TUTORIAL_END   = TUTORIAL_START + TUTORIAL.length - 1;
+const PROLOGUE_DRAFT_KEY = "andeor_game_prologue_draft";
+
+function savePrologueDraft(draft) {
+  try {
+    window.localStorage.setItem(PROLOGUE_DRAFT_KEY, JSON.stringify(draft));
+  } catch {
+    // If storage is unavailable, the user can still finish onboarding after auth.
+  }
+}
+
+function readPrologueDraft() {
+  try {
+    const raw = window.localStorage.getItem(PROLOGUE_DRAFT_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function clearPrologueDraft() {
+  try {
+    window.localStorage.removeItem(PROLOGUE_DRAFT_KEY);
+  } catch {
+    // Ignore storage cleanup failures.
+  }
+}
 
 export default function Prologue() {
   const navigate = useNavigate();
-  const { user, register, refresh } = useAuth();
+  const { user, refresh } = useAuth();
   const { t, lang } = useLanguage();
   const [step, setStep] = useState(0);
   const dialogIndex = step;
   const isDialog = step < DIALOG_KEYS.length;
   const [name, setName] = useState("");
   const [avatar, setAvatar] = useState(null);
-  const [form, setForm] = useState({ email: "", password: "" });
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState(null);
+  const [connectingAuth, setConnectingAuth] = useState(false);
   const finishingRef = useRef(false);
+  const applyingDraftRef = useRef(false);
 
   useEffect(() => {
     if (finishingRef.current) return;
+    if (user && !applyingDraftRef.current) {
+      const draft = readPrologueDraft();
+      if (draft?.avatar) {
+        applyingDraftRef.current = true;
+        api.patch("/me", {
+          name: draft.name || user.name || "",
+          avatar: draft.avatar,
+          language: draft.lang || lang,
+          tutorial_completed: true
+        })
+          .then(() => {
+            clearPrologueDraft();
+            return refresh();
+          })
+          .then(() => {
+            navigate("/dashboard", { replace: true, state: { cinematic: true } });
+          })
+          .finally(() => {
+            applyingDraftRef.current = false;
+          });
+        return;
+      }
+    }
     if (user && user.tutorial_completed) { navigate("/dashboard", { replace: true }); return; }
     if (user && user.avatar) {
       queueMicrotask(() => {
@@ -85,10 +134,9 @@ export default function Prologue() {
     } else if (user && !user.avatar) {
       queueMicrotask(() => {
         setName(user.name || "");
-        setStep(NAME_STEP);
       });
     }
-  }, [user, navigate]);
+  }, [user, navigate, refresh, lang]);
 
   const currentLine = isDialog ? t(DIALOG_KEYS[dialogIndex]) : "";
   const { out, done, finish } = useTypewriter(currentLine, 22, [step, lang]);
@@ -112,21 +160,22 @@ export default function Prologue() {
 
   const bgIndex = isDialog ? DIALOG_BGS[dialogIndex] : step === NAME_STEP ? 1 : step === AVATAR_STEP ? 2 : step === REGISTER_STEP ? 3 : 0;
 
-  const submitRegister = async (e) => {
-    e.preventDefault();
-    setError(null);
-    setBusy(true);
-    try {
-      await register(form.email, form.password, name);
-      await api.patch("/me", { avatar, tutorial_completed: false, language: lang });
-      await refresh();
-      setStep(TUTORIAL_START);
-      toast.success(`Welcome, ${name}!`);
-    } catch (e) {
-      setError(formatErr(e.response?.data?.detail) || e.message);
-    } finally {
-      setBusy(false);
-    }
+  const continueToAndeorAuth = (mode, provider) => {
+    savePrologueDraft({ name: name.trim(), avatar, lang });
+    setConnectingAuth(true);
+    startAndeorAuthPopup({
+      mode,
+      provider,
+      onSuccess: async () => {
+        try {
+          await refresh();
+        } finally {
+          setConnectingAuth(false);
+        }
+      },
+      onError: () => setConnectingAuth(false),
+      onCancel: () => setConnectingAuth(false),
+    });
   };
 
   const finishTutorial = async () => {
@@ -313,7 +362,7 @@ export default function Prologue() {
                           await refresh();
                           setStep(TUTORIAL_START);
                         } catch (e) {
-                          toast.error(formatErr(e.response?.data?.detail) || e.message);
+                          toast.error(e.response?.data?.detail || e.message || "Unable to save your explorer.");
                         }
                       } else {
                         setStep(REGISTER_STEP);
@@ -336,30 +385,65 @@ export default function Prologue() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -16, scale: 0.98 }}
               transition={{ duration: 0.4, ease: "easeOut" }}
-              className="max-w-md mx-auto w-full px-6 pb-12"
+              className="max-w-xl mx-auto w-full px-6 pb-12"
             >
-              <form onSubmit={submitRegister} className="bg-sand-100/95 border-4 border-jungle-700 rounded-3xl shadow-lift p-8" data-testid="prologue-register-form">
+              <div className="bg-sand-100/95 border-4 border-jungle-700 rounded-3xl shadow-lift p-8" data-testid="prologue-auth-options">
                 <div className="font-display text-xs tracking-[0.3em] uppercase text-sunset-500 mb-2">{t("step3.label")}</div>
                 <h2 className="font-display text-3xl mb-2">{t("register.heading")}</h2>
                 <p className="text-ink-700 mb-6 text-sm">{t("register.subhead", { name })}</p>
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="prologue-email">{t("register.email")}</Label>
-                    <Input id="prologue-email" type="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} data-testid="prologue-email-input" className="rounded-2xl mt-2" />
-                  </div>
-                  <div>
-                    <Label htmlFor="prologue-password">{t("register.password")}</Label>
-                    <Input id="prologue-password" type="password" minLength={6} required value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} data-testid="prologue-password-input" className="rounded-2xl mt-2" />
-                  </div>
-                  {error && <div className="text-sunset-600 text-sm" data-testid="prologue-error">{error}</div>}
+                <div className="space-y-3">
+                  <Button
+                    type="button"
+                    disabled={connectingAuth}
+                    onClick={() => continueToAndeorAuth("login", "google")}
+                    data-testid="prologue-google-auth"
+                    className="w-full rounded-2xl bg-white text-ink-900 border border-ink-900/10 hover:bg-sand-50 justify-start h-auto py-4 disabled:opacity-70"
+                  >
+                    <span className="mr-3 grid h-10 w-10 place-items-center rounded-full bg-white shadow-sm border border-ink-900/10">
+                      <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden="true">
+                        <path fill="#4285F4" d="M22.6 12.2c0-.8-.1-1.6-.2-2.3H12v4.4h5.9c-.3 1.4-1.1 2.5-2.2 3.3v2.7h3.6c2.1-1.9 3.3-4.7 3.3-8.1Z" />
+                        <path fill="#34A853" d="M12 23c3 0 5.5-1 7.3-2.7l-3.6-2.7c-1 .7-2.2 1-3.7 1-2.8 0-5.2-1.9-6.1-4.5H2.2v2.8C4 20.5 7.7 23 12 23Z" />
+                        <path fill="#FBBC05" d="M5.9 14.1c-.2-.7-.4-1.4-.4-2.1s.1-1.4.4-2.1V7.1H2.2A11 11 0 0 0 1 12c0 1.8.4 3.5 1.2 4.9l3.7-2.8Z" />
+                        <path fill="#EA4335" d="M12 5.4c1.6 0 3.1.6 4.2 1.7l3.2-3.2A10.8 10.8 0 0 0 12 1C7.7 1 4 3.5 2.2 7.1l3.7 2.8c.9-2.6 3.3-4.5 6.1-4.5Z" />
+                      </svg>
+                    </span>
+                    <span className="text-left">
+                      <span className="block font-display text-lg">{connectingAuth ? "Connecting Google..." : t("register.google")}</span>
+                      <span className="block text-xs font-normal text-ink-700">Connect without leaving the adventure map.</span>
+                    </span>
+                  </Button>
+                  <Button
+                    type="button"
+                    disabled={connectingAuth}
+                    onClick={() => continueToAndeorAuth("signup", "google")}
+                    data-testid="prologue-signup-auth"
+                    className="w-full rounded-2xl bg-jungle-500 hover:bg-jungle-600 text-white justify-start h-auto py-4 disabled:opacity-70"
+                  >
+                    <Sparkles className="mr-3 h-5 w-5" />
+                    <span className="text-left">
+                      <span className="block font-display text-lg">Sign up with Google</span>
+                      <span className="block text-xs font-normal text-sand-100/80">{t("register.signup.subhead")}</span>
+                    </span>
+                  </Button>
+                  <Button
+                    type="button"
+                    disabled={connectingAuth}
+                    onClick={() => continueToAndeorAuth("login", "google")}
+                    data-testid="prologue-login-auth"
+                    variant="outline"
+                    className="w-full rounded-2xl justify-start h-auto py-4 disabled:opacity-70"
+                  >
+                    <LogIn className="mr-3 h-5 w-5" />
+                    <span className="text-left">
+                      <span className="block font-display text-lg">Log in with Google</span>
+                      <span className="block text-xs font-normal text-ink-700">{t("register.login.subhead")}</span>
+                    </span>
+                  </Button>
                 </div>
                 <div className="flex gap-3 justify-end mt-6">
                   <Button type="button" variant="outline" onClick={() => setStep(AVATAR_STEP)} className="rounded-full">{t("btn.back")}</Button>
-                  <Button type="submit" disabled={busy} data-testid="prologue-register-btn" className="rounded-full bg-sunset-500 hover:bg-sunset-600 text-white">
-                    {busy ? t("register.submit.busy") : t("register.submit")}
-                  </Button>
                 </div>
-              </form>
+              </div>
             </motion.div>
           )}
 
