@@ -216,6 +216,7 @@ def _load_seed(name: str) -> list:
 REGIONS = _load_seed("regions.seed.json")
 TOURS = _load_seed("tours.seed.json")
 QUESTS = _load_seed("quests.seed.json")
+MAIN_QUESTS_SEED = _load_seed("main_quests.seed.json")
 REWARD_TEMPLATES = _load_seed("reward_templates.seed.json")
 
 
@@ -239,6 +240,13 @@ async def seed_data():
     # Quests
     if await db.quests.count_documents({}) == 0:
         await db.quests.insert_many([dict(q) for q in QUESTS])
+    # Main quests — upsert so edits to the seed always propagate
+    for mq in MAIN_QUESTS_SEED:
+        await db.main_quests.update_one(
+            {"main_quest_id": mq["main_quest_id"]},
+            {"$set": dict(mq)},
+            upsert=True,
+        )
     # Reward templates
     if await db.reward_templates.count_documents({}) == 0:
         await db.reward_templates.insert_many([dict(r) for r in REWARD_TEMPLATES])

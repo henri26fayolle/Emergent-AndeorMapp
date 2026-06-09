@@ -1,0 +1,94 @@
+[
+  {
+    "main_quest_id": "mq-son-la-mer",
+    "title": "Son la Mer",
+    "subtitle": "Mauritius from the ocean's perspective.",
+    "icon": "Waves",
+    "theme_color": "ocean",
+    "theme_hex": "#0F8FA8",
+    "tour_ids": [
+      "t-kayak-sunrise",
+      "t-kayak-dolphins",
+      "t-snorkel-blue-bay"
+    ],
+    "lore_intro": "The sea is how Mauritius welcomes you. River first, then bay, then reef. Three waters, three moods — this is the island before it was an island.",
+    "epilogue": "You paddled the river at dawn, swam with spinner dolphins and drifted over Blue Bay's reef. The ocean has nothing left to hide from you. Ti Dodo nods: 'Now you know why we never leave.'",
+    "seal_badge_id": "badge-sea-soul",
+    "title_earned": "Sea Soul",
+    "discount_pct": 15
+  },
+  {
+    "main_quest_id": "mq-randonner",
+    "title": "Randonner",
+    "subtitle": "Walk the spine of the island.",
+    "icon": "Mountain",
+    "theme_color": "jungle",
+    "theme_hex": "#1B6F4B",
+    "tour_ids": [
+      "t-hike-black-river",
+      "t-hike-tamarind-half",
+      "t-hike-le-morne-original"
+    ],
+    "lore_intro": "Each trail harder than the last. Gorge to cascades to summit. The island tests you before it opens up — and what it reveals at the top is worth every step.",
+    "epilogue": "Gorge, cascades, summit. Three different Mauritiuses, all reached on foot. Ti Dodo bows: 'The trails of this island will answer when you call.'",
+    "seal_badge_id": "badge-ridge-walker",
+    "title_earned": "Ridge Walker",
+    "discount_pct": 15
+  },
+  {
+    "main_quest_id": "mq-moris-enn-sel",
+    "title": "Moris Enn Sel",
+    "subtitle": "The complete island arc.",
+    "icon": "Compass",
+    "theme_color": "sun",
+    "theme_hex": "#E8B241",
+    "tour_ids": [
+      "t-kayak-dolphins",
+      "t-hike-le-morne-sunrise",
+      "t-bird-watching",
+      "t-canyoning-tamarind",
+      "t-sega-night"
+    ],
+    "lore_intro": "You don't see Mauritius until you've seen it whole. Lagoon, ridge, gorge, open road, and a drum at sunset. This is the full map — and the people who made it.",
+    "epilogue": "Dolphins at dawn. Summit at sunrise. Gorge at midday. Birds at dusk. Sega at night. You didn't visit Mauritius — you lived a week of it the way it's meant to be lived. Ti Dodo grins: 'You are one of us now.'",
+    "seal_badge_id": "badge-moris-enn-sel",
+    "title_earned": "Moris Enn Sel",
+    "discount_pct": 20
+  },
+  {
+    "main_quest_id": "mq-island-pulse",
+    "title": "Island Pulse",
+    "subtitle": "Port Louis, Sega, Creole table, local life.",
+    "icon": "Landmark",
+    "theme_color": "sunset",
+    "theme_hex": "#E27447",
+    "tour_ids": [
+      "t-sega-night",
+      "t-culture-creole-cooking",
+      "t-culture-port-louis-market"
+    ],
+    "lore_intro": "Mauritius isn't just nature — it's nine cultures layered on a small island. This quest is the human map: the drum, the table, the market, the street. Come hungry.",
+    "epilogue": "The Sega beat in your chest, the dholl puri on your tongue, the market noise still ringing. You have not just visited Mauritius — you have been welcomed into it.",
+    "seal_badge_id": "badge-heritage-keeper",
+    "title_earned": "Heritage Keeper",
+    "discount_pct": 15
+  },
+  {
+    "main_quest_id": "mq-smooth-passage",
+    "title": "Smooth Passage",
+    "subtitle": "The trip that runs itself.",
+    "icon": "Navigation",
+    "theme_color": "sand",
+    "theme_hex": "#C4622D",
+    "tour_ids": [
+      "t-service-tailor-made-trip",
+      "t-service-transfer",
+      "t-service-review"
+    ],
+    "lore_intro": "The island is easier when someone who knows it has your back. Plan it right, move through it smoothly, leave a trace. This quest is about using the full Andeor platform — not just the trails.",
+    "epilogue": "Planned. Moved. Remembered. You used every tool the platform offers and the trip delivered. Ti Dodo: 'The best journeys leave nothing to chance and everything to wonder.'",
+    "seal_badge_id": "badge-trusted-traveller",
+    "title_earned": "Trusted Traveller",
+    "discount_pct": 10
+  }
+]
