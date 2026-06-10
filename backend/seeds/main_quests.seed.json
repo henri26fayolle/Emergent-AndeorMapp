@@ -64,8 +64,9 @@
     "theme_hex": "#E27447",
     "tour_ids": [
       "t-sega-night",
-      "t-culture-creole-cooking",
-      "t-culture-port-louis-market"
+      "t-pl-central-market",
+      "t-pl-aapravasi-ghat",
+      "t-creole-table"
     ],
     "lore_intro": "Mauritius isn't just nature — it's nine cultures layered on a small island. This quest is the human map: the drum, the table, the market, the street. Come hungry.",
     "epilogue": "The Sega beat in your chest, the dholl puri on your tongue, the market noise still ringing. You have not just visited Mauritius — you have been welcomed into it.",
